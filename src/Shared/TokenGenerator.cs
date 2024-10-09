@@ -4,7 +4,7 @@
 using System;
 using System.Security.Cryptography;
 
-namespace Aspire.Hosting;
+namespace Turbine.Hosting;
 
 internal static class TokenGenerator
 {

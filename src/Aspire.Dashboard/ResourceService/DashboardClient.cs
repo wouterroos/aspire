@@ -13,12 +13,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Aspire;
-using Aspire.Dashboard.Utils;
-using Aspire.Hosting;
-using Aspire.ResourceService.Proto.V1;
 using Turbine.Dashboard.Configuration;
-using Turbine.Dashboard.Utils;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
@@ -26,6 +21,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Resource = Aspire.ResourceService.Proto.V1.Resource;
+using Aspire.ResourceService.Proto.V1;
+using Aspire;
+using Turbine.Hosting;
+using Turbine.Dashboard.Utils;
 
 namespace Turbine.Dashboard.Model;
 

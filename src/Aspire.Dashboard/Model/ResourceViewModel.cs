@@ -6,7 +6,6 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Aspire;
 using Turbine.Dashboard.Extensions;
 using Google.Protobuf.WellKnownTypes;
 

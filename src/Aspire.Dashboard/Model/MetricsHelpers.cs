@@ -5,12 +5,11 @@ using System;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using Aspire.Dashboard.Utils;
 using Turbine.Dashboard.Otlp.Model;
 using Turbine.Dashboard.Resources;
-using Turbine.Dashboard.Utils;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Turbine.Dashboard.Utils;
 
 namespace Turbine.Dashboard.Model;
 

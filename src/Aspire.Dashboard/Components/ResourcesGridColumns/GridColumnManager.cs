@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Aspire;
 using Turbine.Dashboard.Components.Resize;
 using Turbine.Dashboard.Model;
 

@@ -9,8 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Aspire;
-using Aspire.Dashboard.Utils;
+using Turbine.Dashboard.Utils;
 using Turbine.Dashboard.Components.Controls;
 using Turbine.Dashboard.Components.Layout;
 using Turbine.Dashboard.Components.Resize;
@@ -19,7 +18,6 @@ using Turbine.Dashboard.Model;
 using Turbine.Dashboard.Model.Otlp;
 using Turbine.Dashboard.Otlp.Model;
 using Turbine.Dashboard.Resources;
-using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 

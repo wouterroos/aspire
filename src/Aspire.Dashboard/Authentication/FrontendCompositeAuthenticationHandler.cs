@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Aspire.Dashboard;
 using Turbine.Dashboard.Authentication.Connection;
 using Turbine.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;

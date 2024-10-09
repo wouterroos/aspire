@@ -9,8 +9,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
-using Aspire;
-using Aspire.Dashboard.Utils;
 using Turbine.Dashboard.Otlp.Model;
 using Turbine.Dashboard.Utils;
 

@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Aspire;
 using Turbine.Dashboard.Extensions;
 using Turbine.Dashboard.Model;
 

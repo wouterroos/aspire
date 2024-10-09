@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Aspire;
+namespace Turbine;
 
 internal static class StringComparers
 {

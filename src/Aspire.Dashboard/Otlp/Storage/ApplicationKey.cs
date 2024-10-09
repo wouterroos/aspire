@@ -2,7 +2,6 @@
 // See LICENSE file in the project root for full license information.
 
 using System;
-using Aspire;
 
 namespace Turbine.Dashboard.Otlp.Storage;
 

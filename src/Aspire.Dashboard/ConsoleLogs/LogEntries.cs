@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Aspire.Dashboard.Otlp.Storage;
 using Turbine.Dashboard.Model;
-using Turbine.Dashboard.Otlp.Storage;
 
 namespace Turbine.Dashboard.ConsoleLogs;
 

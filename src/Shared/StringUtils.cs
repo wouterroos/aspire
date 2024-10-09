@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Utils;
+namespace Turbine.Hosting.Utils;
 
 internal static class StringUtils
 {

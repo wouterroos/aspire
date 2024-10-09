@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Aspire.Dashboard.Model;
 using Turbine.Dashboard.Model;
 using Turbine.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;

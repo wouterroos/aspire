@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Aspire;
 using Microsoft.Extensions.Logging;
 using Turbine.Dashboard.Otlp.Model;
 

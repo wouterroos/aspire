@@ -5,7 +5,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Dashboard.Utils;
+namespace Turbine.Dashboard.Utils;
 
 internal static class TaskHelpers
 {

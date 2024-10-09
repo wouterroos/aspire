@@ -3,8 +3,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Aspire;
-using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
 using Turbine.Dashboard.Utils;
 

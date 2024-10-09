@@ -6,11 +6,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Aspire.Dashboard.Otlp.Storage;
 using Turbine.Dashboard.Configuration;
-using Turbine.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Metrics.V1;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Turbine.Dashboard.Otlp.Model.MetricValues;
 

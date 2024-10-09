@@ -11,8 +11,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Aspire;
-using Aspire.Dashboard.Otlp.Storage;
 using Turbine.Dashboard.Configuration;
 using Turbine.Dashboard.Otlp.Model;
 using Turbine.Dashboard.Otlp.Model.MetricValues;
@@ -25,6 +23,7 @@ using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Turbine.Dashboard.Model.Otlp;
 using static OpenTelemetry.Proto.Trace.V1.Span.Types;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Turbine.Dashboard.Otlp.Storage;
 

@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Aspire;
+namespace Turbine;
 
 internal static class CompareHelpers
 {

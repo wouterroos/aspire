@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using Aspire.Hosting;
+using Turbine.Hosting;
 
 namespace Turbine.Dashboard.Configuration;
 

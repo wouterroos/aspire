@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Aspire;
 
 namespace Turbine.Dashboard.Model;
 

@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Aspire;
 
 namespace Turbine.Dashboard.Model;
 

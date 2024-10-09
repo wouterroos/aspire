@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 
-namespace Aspire;
+namespace Turbine;
 
 internal static class IConfigurationExtensions
 {
