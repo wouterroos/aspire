@@ -1,23 +1,34 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Components.Resize;
+using System.Threading;
+using System.Threading.Tasks;
+using Aspire;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Google.Protobuf.WellKnownTypes;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 public partial class Resources : ComponentBase, IAsyncDisposable
 {
@@ -36,20 +47,28 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
+
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
+
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
     [Inject]
     public required IDialogService DialogService { get; init; }
+
     [Inject]
     public required IToastService ToastService { get; init; }
+
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
+
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; init; }
+
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
@@ -101,8 +120,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             static bool SetEqualsKeys(ConcurrentDictionary<string, bool> left, ConcurrentDictionary<string, bool> right)
             {
                 // PERF: This is inefficient since Keys locks and copies the keys.
-                var keysLeft = left.Keys;
-                var keysRight = right.Keys;
+                ICollection<string>? keysLeft = left.Keys;
+                ICollection<string>? keysRight = right.Keys;
 
                 return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key, StringComparers.ResourceType).SequenceEqual(keysRight.OrderBy(key => key, StringComparers.ResourceType), StringComparers.ResourceType);
             }
@@ -118,7 +137,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             static bool UnionWithKeys(ConcurrentDictionary<string, bool> left, ConcurrentDictionary<string, bool> right)
             {
                 // .Keys locks and copies the keys so avoid it here.
-                foreach (var (key, _) in right)
+                foreach ((string? key, bool _) in right)
                 {
                     left[key] = true;
                 }
@@ -170,7 +189,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
-            var newApplicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+            Dictionary<OtlpApplication, int>? newApplicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
             // Only update UI if the error counts have changed.
             if (ApplicationErrorCountsChanged(newApplicationUnviewedErrorCounts))
@@ -184,14 +203,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         async Task SubscribeResourcesAsync()
         {
-            var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
+            HashSet<string>? preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
 
-            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
+            (ImmutableArray<ResourceViewModel> snapshot, IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>>? subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
-            foreach (var resource in snapshot)
+            foreach (ResourceViewModel? resource in snapshot)
             {
-                var added = _resourceByName.TryAdd(resource.Name, resource);
+                bool added = _resourceByName.TryAdd(resource.Name, resource);
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
 
@@ -206,9 +225,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             // Listen for updates and apply.
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
+                await foreach (IReadOnlyList<ResourceViewModelChange>? changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
-                    foreach (var (changeType, resource) in changes)
+                    foreach ((ResourceViewModelChangeType changeType, ResourceViewModel? resource) in changes)
                     {
                         if (changeType == ResourceViewModelChangeType.Upsert)
                         {
@@ -219,7 +238,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         }
                         else if (changeType == ResourceViewModelChangeType.Delete)
                         {
-                            var removed = _resourceByName.TryRemove(resource.Name, out _);
+                            bool removed = _resourceByName.TryRemove(resource.Name, out _);
                             Debug.Assert(removed, "Cannot remove unknown resource.");
                         }
                     }
@@ -237,9 +256,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             return true;
         }
 
-        foreach (var (application, count) in newApplicationUnviewedErrorCounts)
+        foreach ((OtlpApplication? application, int count) in newApplicationUnviewedErrorCounts)
         {
-            if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var oldCount) || oldCount != count)
+            if (!_applicationUnviewedErrorCounts.TryGetValue(application, out int oldCount) || oldCount != count)
             {
                 return true;
             }
@@ -280,8 +299,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private bool HasMultipleReplicas(ResourceViewModel resource)
     {
-        var count = 0;
-        foreach (var (_, item) in _resourceByName)
+        int count = 0;
+        foreach ((string _, ResourceViewModel? item) in _resourceByName)
         {
             if (item.IsHiddenState())
             {
@@ -308,15 +327,15 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
         {
-            var dialogReference = await DialogService.ShowConfirmationAsync(command.ConfirmationMessage);
-            var result = await dialogReference.Result;
+            IDialogReference? dialogReference = await DialogService.ShowConfirmationAsync(command.ConfirmationMessage);
+            DialogResult? result = await dialogReference.Result;
             if (result.Cancelled)
             {
                 return;
             }
         }
 
-        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
+        ResourceCommandResponseViewModel? response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
 
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
         {
@@ -341,26 +360,26 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
     {
         // NOTE projects are also executables, so we have to check for projects first
-        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
+        if (resource.IsProject() && resource.TryGetProjectPath(out string? projectPath))
         {
             return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
         }
 
-        if (resource.TryGetExecutablePath(out var executablePath))
+        if (resource.TryGetExecutablePath(out string? executablePath))
         {
-            resource.TryGetExecutableArguments(out var arguments);
-            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
-            var fullCommandLine = $"{executablePath} {argumentsString}";
+            resource.TryGetExecutableArguments(out ImmutableArray<string> arguments);
+            string? argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
+            string? fullCommandLine = $"{executablePath} {argumentsString}";
 
             return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
         }
 
-        if (resource.TryGetContainerImage(out var containerImage))
+        if (resource.TryGetContainerImage(out string? containerImage))
         {
             return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
         }
 
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
+        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out Value? value) && value.HasStringValue)
         {
             return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
         }
@@ -370,7 +389,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private string GetEndpointsTooltip(ResourceViewModel resource)
     {
-        var displayedEndpoints = GetDisplayedEndpoints(resource, out var additionalMessage);
+        List<DisplayedEndpoint>? displayedEndpoints = GetDisplayedEndpoints(resource, out string? additionalMessage);
 
         if (additionalMessage is not null)
         {
@@ -382,8 +401,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             return displayedEndpoints.First().Text;
         }
 
-        var maxShownEndpoints = 3;
-        var tooltipBuilder = new StringBuilder(string.Join(", ", displayedEndpoints.Take(maxShownEndpoints).Select(endpoint => endpoint.Text)));
+        int maxShownEndpoints = 3;
+        StringBuilder? tooltipBuilder = new StringBuilder(string.Join(", ", displayedEndpoints.Take(maxShownEndpoints).Select(endpoint => endpoint.Text)));
 
         if (displayedEndpoints.Count > maxShownEndpoints)
         {

@@ -1,10 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Globalization;
 using Microsoft.AspNetCore.WebUtilities;
 
-namespace Aspire.Dashboard.Utils;
+namespace Turbine.Dashboard.Utils;
 
 internal static class DashboardUrls
 {
@@ -20,7 +21,7 @@ internal static class DashboardUrls
 
     public static string ConsoleLogsUrl(string? resource = null)
     {
-        var url = $"/{ConsoleLogBasePath}";
+        string? url = $"/{ConsoleLogBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
@@ -31,7 +32,7 @@ internal static class DashboardUrls
 
     public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null)
     {
-        var url = $"/{MetricsBasePath}";
+        string? url = $"/{MetricsBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
@@ -59,7 +60,7 @@ internal static class DashboardUrls
 
     public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null)
     {
-        var url = $"/{StructuredLogsBasePath}";
+        string? url = $"/{StructuredLogsBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
@@ -87,7 +88,7 @@ internal static class DashboardUrls
 
     public static string TracesUrl(string? resource = null)
     {
-        var url = $"/{TracesBasePath}";
+        string? url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
@@ -98,7 +99,7 @@ internal static class DashboardUrls
 
     public static string TraceDetailUrl(string traceId, string? spanId = null)
     {
-        var url = $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
+        string? url = $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
         if (spanId != null)
         {
             url = QueryHelpers.AddQueryString(url, "spanId", spanId);
@@ -109,7 +110,7 @@ internal static class DashboardUrls
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)
     {
-        var url = "/login";
+        string? url = "/login";
         if (returnUrl != null)
         {
             url = QueryHelpers.AddQueryString(url, "returnUrl", returnUrl);

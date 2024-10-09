@@ -2,19 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../Layout.resx">
     <body>
-      <trans-unit id="MainLayoutAspire">
-        <source>.NET Aspire</source>
-        <target state="translated">.NET Aspire</target>
+      <trans-unit id="MainLayoutTurbine">
+        <source>.NET Turbine</source>
+        <target state="translated">.NET Turbine</target>
         <note />
       </trans-unit>
-      <trans-unit id="MainLayoutAspireDashboardHelpLink">
+      <trans-unit id="MainLayoutTurbineDashboardHelpLink">
         <source>Help</source>
         <target state="translated">帮助</target>
         <note />
       </trans-unit>
-      <trans-unit id="MainLayoutAspireRepoLink">
-        <source>.NET Aspire repo</source>
-        <target state="translated">.NET Aspire 存储库</target>
+      <trans-unit id="MainLayoutTurbineRepoLink">
+        <source>.NET Turbine repo</source>
+        <target state="translated">.NET Turbine 存储库</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">

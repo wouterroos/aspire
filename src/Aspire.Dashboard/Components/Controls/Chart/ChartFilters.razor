@@ -1,9 +1,9 @@
-﻿@namespace Aspire.Dashboard.Components
+﻿@namespace Turbine.Dashboard.Components
 
-@using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Model
+@using Turbine.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Otlp.Model
+@using Turbine.Dashboard.Model
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="metrics-filters-container">
@@ -11,14 +11,14 @@
     {
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
-            <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+            <FluentDataGrid ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(Loc)"
                             ResizeType="DataGridResizeType.Discrete"
                             Items="@Queryable.AsQueryable(DimensionFilters)"
                             GridTemplateColumns="200px 1fr auto"
                             GenerateHeader="GenerateHeaderOption.None">
                 <ChildContent>
-                    <AspirePropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
-                    <AspireTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
+                    <TurbinePropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
+                    <TurbineTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
                         <FluentOverflow Class="dimension-overflow">
                             <ChildContent>
                                 @if (context.SelectedValues.Count == 0)
@@ -48,8 +48,8 @@
                                 @* Intentionally empty. Don't display an overflow template here. *@
                             </OverflowTemplate>
                         </FluentOverflow>
-                    </AspireTemplateColumn>
-                    <AspireTemplateColumn>
+                    </TurbineTemplateColumn>
+                    <TurbineTemplateColumn>
                         @{
                             var id = $"typeFilterButton-{context.SanitizedHtmlId}-{Guid.NewGuid()}";
                         }
@@ -79,7 +79,7 @@
                             </FluentStack>
                             </Body>
                         </FluentPopover>
-                    </AspireTemplateColumn>
+                    </TurbineTemplateColumn>
                 </ChildContent>
             </FluentDataGrid>
         </div>

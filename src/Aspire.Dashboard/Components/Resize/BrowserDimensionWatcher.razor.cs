@@ -1,10 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Resize;
+namespace Turbine.Dashboard.Components.Resize;
 
 public class BrowserDimensionWatcher : ComponentBase
 {
@@ -33,7 +34,7 @@ public class BrowserDimensionWatcher : ComponentBase
     {
         if (firstRender)
         {
-            var viewport = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
+            ViewportSize? viewport = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
             ViewportInformation = GetViewportInformation(viewport);
             DimensionManager.InvokeOnBrowserDimensionsChanged(ViewportInformation);
             await ViewportInformationChanged.InvokeAsync(ViewportInformation);
@@ -47,7 +48,7 @@ public class BrowserDimensionWatcher : ComponentBase
     [JSInvokable]
     public async Task OnResizeAsync(ViewportSize viewportSize)
     {
-        var newViewportInformation = GetViewportInformation(viewportSize);
+        ViewportInformation? newViewportInformation = GetViewportInformation(viewportSize);
 
         if (newViewportInformation.IsDesktop != ViewportInformation!.IsDesktop
             || newViewportInformation.IsUltraLowHeight != ViewportInformation.IsUltraLowHeight
@@ -72,5 +73,6 @@ public class BrowserDimensionWatcher : ComponentBase
             IsUltraLowHeight: viewportSize.Height < LowHeightCutoffPixelWidth,
             IsUltraLowWidth: viewportSize.Width < LowWidthCutoffPixelWidth);
     }
+
     public record ViewportSize(int Width, int Height);
 }

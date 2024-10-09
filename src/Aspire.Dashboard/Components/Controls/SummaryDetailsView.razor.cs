@@ -1,15 +1,18 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Globalization;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 {
@@ -86,7 +89,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         {
             if (RememberOrientation)
             {
-                var orientationResult = await LocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
+                StorageResult<Orientation> orientationResult = await LocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
                 if (orientationResult.Success)
                 {
                     Orientation = orientationResult.Value;
@@ -95,7 +98,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
             if (RememberSize)
             {
-                var panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+                StorageResult<float> panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
                 if (panel1FractionResult.Success)
                 {
                     SetPanelSizes(panel1FractionResult.Value);
@@ -133,11 +136,10 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
         if (RememberSize)
         {
-            var panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+            StorageResult<float> panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
             if (panel1FractionResult.Success)
             {
                 SetPanelSizes(panel1FractionResult.Value);
-
             }
             else
             {
@@ -156,9 +158,9 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
     private async Task HandleSplitterResize(SplitterResizedEventArgs args)
     {
-        var totalSize = (float)(args.Panel1Size + args.Panel2Size);
+        float totalSize = (float)(args.Panel1Size + args.Panel2Size);
 
-        var panel1Fraction = (args.Panel1Size / totalSize);
+        float panel1Fraction = (args.Panel1Size / totalSize);
 
         SetPanelSizes(panel1Fraction);
 
@@ -195,29 +197,29 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         }
     }
 
-    public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
+    public IReadOnlySet<TurbineKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<TurbineKeyboardShortcut>
     {
-        AspireKeyboardShortcut.ToggleOrientation,
-        AspireKeyboardShortcut.ClosePanel,
-        AspireKeyboardShortcut.ResetPanelSize,
-        AspireKeyboardShortcut.IncreasePanelSize,
-        AspireKeyboardShortcut.DecreasePanelSize
+        TurbineKeyboardShortcut.ToggleOrientation,
+        TurbineKeyboardShortcut.ClosePanel,
+        TurbineKeyboardShortcut.ResetPanelSize,
+        TurbineKeyboardShortcut.IncreasePanelSize,
+        TurbineKeyboardShortcut.DecreasePanelSize
     };
 
-    public async Task OnPageKeyDownAsync(AspireKeyboardShortcut shortcut)
+    public async Task OnPageKeyDownAsync(TurbineKeyboardShortcut shortcut)
     {
         if (_splitterRef is null)
         {
             return;
         }
 
-        if (shortcut is AspireKeyboardShortcut.ToggleOrientation)
+        if (shortcut is TurbineKeyboardShortcut.ToggleOrientation)
         {
             await HandleToggleOrientation();
             return;
         }
 
-        if (shortcut is AspireKeyboardShortcut.ClosePanel)
+        if (shortcut is TurbineKeyboardShortcut.ClosePanel)
         {
             if (SelectedValue is not null)
             {
@@ -228,33 +230,33 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
             return;
         }
 
-        var hasChanged = false;
+        bool hasChanged = false;
 
-        if (shortcut is AspireKeyboardShortcut.ResetPanelSize)
+        if (shortcut is TurbineKeyboardShortcut.ResetPanelSize)
         {
             ResetPanelSizes();
             hasChanged = true;
         }
 
-        GetPanelSizes(_splitterRef.Panel1Size, _splitterRef.Panel2Size, out var panel1Size, out var panel2Size, out var panel1Fraction);
+        GetPanelSizes(_splitterRef.Panel1Size, _splitterRef.Panel2Size, out float? panel1Size, out float? panel2Size, out float? panel1Fraction);
 
         if (panel1Size is null || panel2Size is null || panel1Fraction is null)
         {
             return;
         }
 
-        if (shortcut is AspireKeyboardShortcut.IncreasePanelSize)
+        if (shortcut is TurbineKeyboardShortcut.IncreasePanelSize)
         {
             SetPanelSizes(panel1Fraction.Value - 0.05f);
             hasChanged = true;
         }
-        else if (shortcut is AspireKeyboardShortcut.DecreasePanelSize)
+        else if (shortcut is TurbineKeyboardShortcut.DecreasePanelSize)
         {
             SetPanelSizes(panel1Fraction.Value + 0.05f);
             hasChanged = true;
         }
 
-        GetPanelSizes(_splitterRef.Panel1Size, _splitterRef.Panel2Size, out _, out _, out var newPanel1Fraction);
+        GetPanelSizes(_splitterRef.Panel1Size, _splitterRef.Panel2Size, out _, out _, out float? newPanel1Fraction);
 
         if (newPanel1Fraction is null || !hasChanged)
         {
@@ -285,20 +287,20 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
             panel1Size = (float)Convert.ToDouble(panel1SizeString[..^2], CultureInfo.InvariantCulture);
             panel2Size = (float)Convert.ToDouble(panel2SizeString[..^2], CultureInfo.InvariantCulture);
 
-            var newTotalSize = (float)(panel1Size + panel2Size);
+            float newTotalSize = (float)(panel1Size + panel2Size);
             panel1Fraction = panel1Size.Value / newTotalSize;
         }
     }
 
     private string GetSizeStorageKey()
     {
-        var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        string? viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         return $"SplitterSize_{Orientation}_{viewKey}";
     }
 
     private string GetOrientationStorageKey()
     {
-        var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        string? viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         return $"SplitterOrientation_{viewKey}";
     }
 

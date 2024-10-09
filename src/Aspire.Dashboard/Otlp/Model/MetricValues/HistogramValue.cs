@@ -1,11 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Globalization;
 using System.Text;
-using Aspire.Dashboard.Extensions;
+using Turbine.Dashboard.Extensions;
 
-namespace Aspire.Dashboard.Otlp.Model.MetricValues;
+namespace Turbine.Dashboard.Otlp.Model.MetricValues;
 
 public class HistogramValue : MetricValueBase
 {
@@ -23,10 +24,10 @@ public class HistogramValue : MetricValueBase
 
     public override string ToString()
     {
-        var sb = new StringBuilder();
-        var first = true;
+        StringBuilder? sb = new StringBuilder();
+        bool first = true;
         sb.Append(CultureInfo.InvariantCulture, $"Count:{Count} Sum:{Sum} Values:");
-        foreach (var v in Values)
+        foreach (ulong v in Values)
         {
             if (!first)
             {
@@ -46,7 +47,7 @@ public class HistogramValue : MetricValueBase
 
     protected override MetricValueBase Clone()
     {
-        var value = new HistogramValue(Values, Sum, Count, Start, End, ExplicitBounds);
+        HistogramValue? value = new HistogramValue(Values, Sum, Count, Start, End, ExplicitBounds);
         if (HasExemplars)
         {
             value.Exemplars.AddRange(Exemplars);

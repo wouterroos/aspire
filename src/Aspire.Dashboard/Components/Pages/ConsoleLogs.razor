@@ -1,15 +1,15 @@
 ﻿@page "/consolelogs"
 @page "/consolelogs/resource/{resourceName}"
 
-@using Aspire.Dashboard.Resources
-@namespace Aspire.Dashboard.Components.Pages
+@using Turbine.Dashboard.Resources
+@namespace Turbine.Dashboard.Components.Pages
 @inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout
+    <TurbinePageContentLayout
         AddNewlineOnToolbar="true"
         @ref="@_contentLayout"
         MainContentStyle="margin-top: 10px;"
@@ -46,5 +46,5 @@
         <MainSection>
             <LogViewer @ref="_logViewer"/>
         </MainSection>
-    </AspirePageContentLayout>
+    </TurbinePageContentLayout>
 </div>

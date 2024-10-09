@@ -1,7 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-namespace Aspire.Dashboard.Extensions;
+using System.Collections.Generic;
+using Aspire;
+
+namespace Turbine.Dashboard.Extensions;
 
 internal static class FluentUIExtensions
 {
@@ -10,7 +13,7 @@ internal static class FluentUIExtensions
         // No onclick attribute is added here. The CSP restricts inline scripts, including onclick.
         // Instead, a click event listener is added to the document and clicking the button is bubbled up to the event.
         // The document click listener looks for a button element and these attributes.
-        var attributes = new Dictionary<string, object>(StringComparers.Attribute)
+        Dictionary<string, object>? attributes = new Dictionary<string, object>(StringComparers.Attribute)
         {
             { "data-text", text ?? string.Empty },
             { "data-precopy", precopy ?? string.Empty },
@@ -18,7 +21,7 @@ internal static class FluentUIExtensions
             { "data-copybutton", "true" }
         };
 
-        foreach (var (attribute, value) in additionalAttributes)
+        foreach ((string? attribute, object? value) in additionalAttributes)
         {
             attributes.Add(attribute, value);
         }
@@ -28,13 +31,13 @@ internal static class FluentUIExtensions
 
     public static Dictionary<string, object> GetOpenTextVisualizerAdditionalAttributes(string textValue, string textValueDescription, params (string Attribute, object Value)[] additionalAttributes)
     {
-        var attributes = new Dictionary<string, object>(StringComparers.Attribute)
+        Dictionary<string, object>? attributes = new Dictionary<string, object>(StringComparers.Attribute)
         {
             { "data-text", textValue },
             { "data-textvisualizer-description", textValueDescription }
         };
 
-        foreach (var (attribute, value) in additionalAttributes)
+        foreach ((string? attribute, object? value) in additionalAttributes)
         {
             attributes.Add(attribute, value);
         }

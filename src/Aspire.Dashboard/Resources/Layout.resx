@@ -117,10 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="MainLayoutAspireRepoLink" xml:space="preserve">
-    <value>.NET Aspire repo</value>
+  <data name="MainLayoutTurbineRepoLink" xml:space="preserve">
+    <value>.NET Turbine repo</value>
   </data>
-  <data name="MainLayoutAspireDashboardHelpLink" xml:space="preserve">
+  <data name="MainLayoutTurbineDashboardHelpLink" xml:space="preserve">
     <value>Help</value>
   </data>
   <data name="MainLayoutLaunchSettings" xml:space="preserve">
@@ -156,8 +156,8 @@
   <data name="NavMenuMetricsTab" xml:space="preserve">
     <value>Metrics</value>
   </data>
-  <data name="MainLayoutAspire" xml:space="preserve">
-    <value>.NET Aspire</value>
+  <data name="MainLayoutTurbine" xml:space="preserve">
+    <value>.NET Turbine</value>
   </data>
   <data name="MessageTelemetryBody" xml:space="preserve">
     <value>Untrusted apps can send telemetry to the dashboard.</value>

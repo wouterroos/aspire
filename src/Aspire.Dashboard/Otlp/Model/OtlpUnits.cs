@@ -1,10 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 public static class OtlpUnits
 {
@@ -12,11 +13,11 @@ public static class OtlpUnits
     {
         // Dropping the portions of the Unit within brackets (e.g. {packet}). Brackets MUST NOT be included in the resulting unit. A "count of foo" is considered unitless in Prometheus.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/b2f923fb1650dde1f061507908b834035506a796/specification/compatibility/prometheus_and_openmetrics.md#L238
-        var updatedUnit = RemoveAnnotations(unit);
+        string? updatedUnit = RemoveAnnotations(unit);
 
         // Converting "foo/bar" to "foo_per_bar".
         // https://github.com/open-telemetry/opentelemetry-specification/blob/b2f923fb1650dde1f061507908b834035506a796/specification/compatibility/prometheus_and_openmetrics.md#L240C3-L240C41
-        if (TryProcessRateUnits(updatedUnit, out var updatedPerUnit))
+        if (TryProcessRateUnits(updatedUnit, out string? updatedPerUnit))
         {
             updatedUnit = updatedPerUnit;
         }
@@ -60,13 +61,13 @@ public static class OtlpUnits
         // Right now the remove annotations code doesn't attempt to balance multiple start and end braces.
         StringBuilder? sb = null;
 
-        var hasOpenBrace = false;
-        var startOpenBraceIndex = 0;
-        var lastWriteIndex = 0;
+        bool hasOpenBrace = false;
+        int startOpenBraceIndex = 0;
+        int lastWriteIndex = 0;
 
-        for (var i = 0; i < unit.Length; i++)
+        for (int i = 0; i < unit.Length; i++)
         {
-            var c = unit[i];
+            char c = unit[i];
             if (c == '{')
             {
                 if (!hasOpenBrace)

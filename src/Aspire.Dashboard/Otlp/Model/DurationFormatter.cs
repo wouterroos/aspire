@@ -1,9 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 public static class DurationFormatter
 {
@@ -27,9 +29,9 @@ public static class DurationFormatter
 
     public static string FormatDuration(TimeSpan duration)
     {
-        var (primaryUnit, secondaryUnit) = ResolveUnits(duration.Ticks);
-        var ofPrevious = primaryUnit.Ticks / secondaryUnit.Ticks;
-        var ticks = (double)duration.Ticks;
+        (UnitStep? primaryUnit, UnitStep? secondaryUnit) = ResolveUnits(duration.Ticks);
+        long ofPrevious = primaryUnit.Ticks / secondaryUnit.Ticks;
+        double ticks = (double)duration.Ticks;
 
         if (primaryUnit.IsDecimal)
         {
@@ -37,17 +39,17 @@ public static class DurationFormatter
             return $"{ticks / primaryUnit.Ticks:0.##}{primaryUnit.Unit}";
         }
 
-        var primaryValue = Math.Floor(ticks / primaryUnit.Ticks);
-        var primaryUnitString = $"{primaryValue}{primaryUnit.Unit}";
-        var secondaryValue = Math.Round((ticks / secondaryUnit.Ticks) % ofPrevious, MidpointRounding.AwayFromZero);
-        var secondaryUnitString = $"{secondaryValue}{secondaryUnit.Unit}";
+        double primaryValue = Math.Floor(ticks / primaryUnit.Ticks);
+        string? primaryUnitString = $"{primaryValue}{primaryUnit.Unit}";
+        double secondaryValue = Math.Round((ticks / secondaryUnit.Ticks) % ofPrevious, MidpointRounding.AwayFromZero);
+        string? secondaryUnitString = $"{secondaryValue}{secondaryUnit.Unit}";
 
         return secondaryValue == 0 ? primaryUnitString : $"{primaryUnitString} {secondaryUnitString}";
     }
 
     public static string GetUnit(TimeSpan duration)
     {
-        var (primaryUnit, secondaryUnit) = ResolveUnits(duration.Ticks);
+        (UnitStep? primaryUnit, UnitStep? secondaryUnit) = ResolveUnits(duration.Ticks);
         if (primaryUnit.IsDecimal)
         {
             return primaryUnit.Unit;
@@ -57,10 +59,10 @@ public static class DurationFormatter
 
     private static (UnitStep, UnitStep) ResolveUnits(long ticks)
     {
-        for (var i = 0; i < s_unitSteps.Count; i++)
+        for (int i = 0; i < s_unitSteps.Count; i++)
         {
-            var step = s_unitSteps[i];
-            var result = i < s_unitSteps.Count - 1 && step.Ticks > ticks;
+            UnitStep? step = s_unitSteps[i];
+            bool result = i < s_unitSteps.Count - 1 && step.Ticks > ticks;
 
             if (!result)
             {

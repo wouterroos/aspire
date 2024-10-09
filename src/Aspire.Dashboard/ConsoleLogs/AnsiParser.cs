@@ -1,9 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Text;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Turbine.Dashboard.ConsoleLogs;
 
 public class AnsiParser
 {
@@ -22,24 +24,24 @@ public class AnsiParser
 
     public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
     {
-        var textStartIndex = -1;
-        var textLength = 0;
+        int textStartIndex = -1;
+        int textLength = 0;
 
         if (string.IsNullOrWhiteSpace(text))
         {
             return new(text, default);
         }
 
-        var span = text.AsSpan();
+        ReadOnlySpan<char> span = text.AsSpan();
 
         ParserState currentState = default;
-        var newState = priorResidualState ?? default;
+        ParserState newState = priorResidualState ?? default;
 
-        var outputBuilder = new StringBuilder(text.Length * 2);
+        StringBuilder? outputBuilder = new StringBuilder(text.Length * 2);
 
-        for (var i = 0; i < span.Length; i++)
+        for (int i = 0; i < span.Length; i++)
         {
-            if (IsControlSequence(span[i..], ref i, out var parameters))
+            if (IsControlSequence(span[i..], ref i, out int[]? parameters))
             {
                 // If we have a control sequence, but have found some text already,
                 // we need to write out the new styles (if applicable) and that text
@@ -61,7 +63,7 @@ public class AnsiParser
                 continue;
             }
 
-            if (IsLinkControlSequence(span[i..], ref i, out var url))
+            if (IsLinkControlSequence(span[i..], ref i, out string? url))
             {
                 // If we have a control sequence, but have found some text already,
                 // we need to write out the new styles (if applicable) and that text
@@ -90,7 +92,7 @@ public class AnsiParser
             {
                 textStartIndex = i;
             }
-            var nextEscapeIndex = -1;
+            int nextEscapeIndex = -1;
             if (i < text.Length - 1)
             {
                 nextEscapeIndex = text.IndexOf(EscapeChar, i + 1);
@@ -130,14 +132,14 @@ public class AnsiParser
 
     private static void ProcessParameters(ref ParserState newState, int[] parameters)
     {
-        for (var i = 0; i < parameters.Length; i++)
+        for (int i = 0; i < parameters.Length; i++)
         {
-            var parameter = parameters[i];
+            int parameter = parameters[i];
 
             // If Xterm color sequence
             if (parameter is XtermForegroundSequenceCode or XtermBackgroundSequenceCode && i + 2 < parameters.Length)
             {
-                var colorCode = parameters[i + 2];
+                int colorCode = parameters[i + 2];
                 if (colorCode is >= 0 and < 256)
                 {
                     if (parameter == XtermBackgroundSequenceCode)
@@ -153,7 +155,7 @@ public class AnsiParser
                 // Skip ahead 2 more parameters that are part of the Xterm color sequence
                 i += 2;
             }
-            else if (TryGetForegroundColor(parameter, out var color))
+            else if (TryGetForegroundColor(parameter, out ConsoleColor? color))
             {
                 newState.ForegroundColor = color;
             }
@@ -206,7 +208,7 @@ public class AnsiParser
         }
 
         // Find the index of the next 'm' character
-        var paramsEndPosition = span.IndexOf('m');
+        int paramsEndPosition = span.IndexOf('m');
         if (paramsEndPosition < 0)
         {
             // No end of escape with 'm' code, cannot parse params.
@@ -215,7 +217,7 @@ public class AnsiParser
         }
 
         // Find the index of the next escape character
-        var nextEscapePosition = SubIndexOfSpan(span, EscapeChar, 1);
+        int nextEscapePosition = SubIndexOfSpan(span, EscapeChar, 1);
         if (nextEscapePosition != -1 && nextEscapePosition < paramsEndPosition)
         {
             // Current sequence is not finished before the next escape sequence starts.
@@ -224,12 +226,12 @@ public class AnsiParser
         }
 
         // Save where current parameter start location
-        var currentParamStartPosition = 2;
+        int currentParamStartPosition = 2;
 
         // List to store all parameters
         List<int> ret = new(2);
 
-        for (var i = currentParamStartPosition; i <= paramsEndPosition; i++)
+        for (int i = currentParamStartPosition; i <= paramsEndPosition; i++)
         {
             if (span[i] == ParametersSeparatorChar || i == paramsEndPosition)
             {
@@ -237,7 +239,7 @@ public class AnsiParser
                 if (int.TryParse(
                     span[currentParamStartPosition..i],
                     System.Globalization.CultureInfo.InvariantCulture,
-                    out var parameterValue))
+                    out int parameterValue))
                 {
                     // Add the parameter to the list
                     ret.Add(parameterValue);
@@ -276,7 +278,7 @@ public class AnsiParser
         }
 
         // Find the position where the url section ends
-        var urlEndEscapePosition = SubIndexOfSpan(span, EscapeChar, 4);
+        int urlEndEscapePosition = SubIndexOfSpan(span, EscapeChar, 4);
         if (urlEndEscapePosition < 0 || span.Length < urlEndEscapePosition + 1 || span[urlEndEscapePosition + 1] != '\\')
         {
             return false;
@@ -284,7 +286,7 @@ public class AnsiParser
 
         // Find the position where the url-text section ends
         // Continue to search until the following char is ']', could be color/mode formatting escape sequences mixed in
-        var linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, urlEndEscapePosition + 1);
+        int linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, urlEndEscapePosition + 1);
         while (linkEndEscapePosition != -1 && span.Length > (linkEndEscapePosition + 2) && span[linkEndEscapePosition + 1] != ']')
         {
             linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, linkEndEscapePosition + 1);
@@ -297,16 +299,16 @@ public class AnsiParser
         }
 
         // Find the position where the whole link sequence ends
-        var linkEndPosition = SubIndexOfSpan(span, '\\', linkEndEscapePosition);
+        int linkEndPosition = SubIndexOfSpan(span, '\\', linkEndEscapePosition);
         if (linkEndPosition < 0)
         {
             return false;
         }
 
-        var urlSpan = span[4..urlEndEscapePosition];
+        ReadOnlySpan<char> urlSpan = span[4..urlEndEscapePosition];
 
         // Fin the position where the params section within the url section ends.
-        var argsEndPosition = urlSpan.IndexOf(';');
+        int argsEndPosition = urlSpan.IndexOf(';');
         if (argsEndPosition < 0)
         {
             return false;
@@ -323,14 +325,14 @@ public class AnsiParser
 
     private static string ProcessStateChange(ParserState currentState, ParserState newState)
     {
-        var closeSpanIfNeeded = "";
+        string? closeSpanIfNeeded = "";
         if (currentState != default)
         {
             closeSpanIfNeeded += "</span>";
         }
 
-        var classes = new List<string>(2);
-        var styles = new List<string>(2);
+        List<string>? classes = new List<string>(2);
+        List<string>? styles = new List<string>(2);
 
         if (newState.ForegroundColor.HasValue)
         {
@@ -357,8 +359,8 @@ public class AnsiParser
 
         if (newState.XtermForegroundColorCode.HasValue)
         {
-            var colorValue = newState.XtermForegroundColorCode.Value;
-            if (TryGetXtermRgbHexColor(colorValue, out var rgbForegroundHex))
+            int colorValue = newState.XtermForegroundColorCode.Value;
+            if (TryGetXtermRgbHexColor(colorValue, out string? rgbForegroundHex))
             {
                 styles.Add($"color: {rgbForegroundHex}");
             }
@@ -366,8 +368,8 @@ public class AnsiParser
 
         if (newState.XtermBackgroundColorCode.HasValue)
         {
-            var colorValue = newState.XtermBackgroundColorCode.Value;
-            if (TryGetXtermRgbHexColor(colorValue, out var rgbBackgroundHex))
+            int colorValue = newState.XtermBackgroundColorCode.Value;
+            if (TryGetXtermRgbHexColor(colorValue, out string? rgbBackgroundHex))
             {
                 styles.Add($"background-color: {rgbBackgroundHex}");
             }
@@ -378,7 +380,7 @@ public class AnsiParser
             return closeSpanIfNeeded;
         }
 
-        var combined = closeSpanIfNeeded + "<span ";
+        string? combined = closeSpanIfNeeded + "<span ";
 
         if (classes.Count > 0)
         {
@@ -397,14 +399,14 @@ public class AnsiParser
     {
         return state.ForegroundColor switch
         {
-            ConsoleColor.Black   => state.Bright ? "ansi-fg-brightblack"   : "ansi-fg-black",
-            ConsoleColor.Blue    => state.Bright ? "ansi-fg-brightblue"    : "ansi-fg-blue",
-            ConsoleColor.Cyan    => state.Bright ? "ansi-fg-brightcyan"    : "ansi-fg-cyan",
-            ConsoleColor.Green   => state.Bright ? "ansi-fg-brightgreen"   : "ansi-fg-green",
+            ConsoleColor.Black => state.Bright ? "ansi-fg-brightblack" : "ansi-fg-black",
+            ConsoleColor.Blue => state.Bright ? "ansi-fg-brightblue" : "ansi-fg-blue",
+            ConsoleColor.Cyan => state.Bright ? "ansi-fg-brightcyan" : "ansi-fg-cyan",
+            ConsoleColor.Green => state.Bright ? "ansi-fg-brightgreen" : "ansi-fg-green",
             ConsoleColor.Magenta => state.Bright ? "ansi-fg-brightmagenta" : "ansi-fg-magenta",
-            ConsoleColor.Red     => state.Bright ? "ansi-fg-brightred"     : "ansi-fg-red",
-            ConsoleColor.White   => state.Bright ? "ansi-fg-brightwhite"   : "ansi-fg-white",
-            ConsoleColor.Yellow  => state.Bright ? "ansi-fg-brightyellow"  : "ansi-fg-yellow",
+            ConsoleColor.Red => state.Bright ? "ansi-fg-brightred" : "ansi-fg-red",
+            ConsoleColor.White => state.Bright ? "ansi-fg-brightwhite" : "ansi-fg-white",
+            ConsoleColor.Yellow => state.Bright ? "ansi-fg-brightyellow" : "ansi-fg-yellow",
             _ => ""
         };
     }
@@ -413,14 +415,14 @@ public class AnsiParser
     {
         return state.BackgroundColor switch
         {
-            ConsoleColor.Black   => "ansi-bg-black",
-            ConsoleColor.Blue    => "ansi-bg-blue",
-            ConsoleColor.Cyan    => "ansi-bg-cyan",
-            ConsoleColor.Green   => "ansi-bg-green",
+            ConsoleColor.Black => "ansi-bg-black",
+            ConsoleColor.Blue => "ansi-bg-blue",
+            ConsoleColor.Cyan => "ansi-bg-cyan",
+            ConsoleColor.Green => "ansi-bg-green",
             ConsoleColor.Magenta => "ansi-bg-magenta",
-            ConsoleColor.Red     => "ansi-bg-red",
-            ConsoleColor.White   => "ansi-bg-white",
-            ConsoleColor.Yellow  => "ansi-bg-yellow",
+            ConsoleColor.Red => "ansi-bg-red",
+            ConsoleColor.White => "ansi-bg-white",
+            ConsoleColor.Yellow => "ansi-bg-yellow",
             _ => ""
         };
     }
@@ -727,7 +729,7 @@ public class AnsiParser
 
     private static int SubIndexOfSpan(ReadOnlySpan<char> span, char value, int startIndex = 0)
     {
-        var indexInSlice = span[startIndex..].IndexOf(value);
+        int indexInSlice = span[startIndex..].IndexOf(value);
 
         if (indexInSlice < 0)
         {

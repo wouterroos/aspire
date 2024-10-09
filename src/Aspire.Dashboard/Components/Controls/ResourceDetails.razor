@@ -1,7 +1,7 @@
-﻿@using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+﻿@using Turbine.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Model
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
 <div class="resource-details-layout">
@@ -44,7 +44,7 @@
                         @FilteredResourceValues.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                <FluentDataGrid ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
                                 ResizeType="DataGridResizeType.Discrete"
                                 Items="@FilteredResourceValues"
                                 ResizableColumns="true"
@@ -52,18 +52,18 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                    <TurbineTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue
                             Value="@(context.KnownProperty?.DisplayName ?? context.Key)"
                             ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
                             ToolTip="@context.Key" />
-                    </AspireTemplateColumn>
-                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
+                    </TurbineTemplateColumn>
+                    <TurbineTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
                         <GridValue
                             Value="@GetDisplayedValue(TimeProvider, context)"
                             ValueDescription="@(context.KnownProperty?.DisplayName ?? context.Key)"
                             ToolTip="@context.Tooltip" />
-                    </AspireTemplateColumn>
+                    </TurbineTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="true">
@@ -72,7 +72,7 @@
                         @FilteredEndpoints.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                <FluentDataGrid ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
                                 ResizeType="DataGridResizeType.Discrete"
                                 Items="@FilteredEndpoints"
                                 ResizableColumns="true"
@@ -80,10 +80,10 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                    <TurbineTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue Value="@context.Name" ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" />
-                    </AspireTemplateColumn>
-                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
+                    </TurbineTemplateColumn>
+                    <TurbineTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
                         <GridValue
                             Value="@context.Text"
                             ValueDescription="@context.Name"
@@ -99,7 +99,7 @@
                                 }
                             </ContentAfterValue>
                         </GridValue>
-                    </AspireTemplateColumn>
+                    </TurbineTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="true">

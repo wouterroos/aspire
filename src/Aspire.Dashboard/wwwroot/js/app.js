@@ -68,7 +68,7 @@ window.resetContinuousScrollPosition = function () {
 
 window.initializeContinuousScroll = function () {
     // Reset to scrolling to the end of the content when initializing.
-    // This needs to be called because the value is remembered across Aspire pages because the browser isn't reloading.
+    // This needs to be called because the value is remembered across Turbine pages because the browser isn't reloading.
     resetContinuousScrollPosition();
 
     const container = document.querySelector('.continuous-scroll-overflow');
@@ -259,7 +259,7 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
             return;
         }
 
-        // list of shortcut enum codes is in src/Aspire.Dashboard/Model/IGlobalKeydownListener.cs
+        // list of shortcut enum codes is in src/Turbine.Dashboard/Model/IGlobalKeydownListener.cs
         // to serialize an enum from js->dotnet, we must pass the enum's integer value, not its name
         let shortcut = calculateShortcut(e);
 

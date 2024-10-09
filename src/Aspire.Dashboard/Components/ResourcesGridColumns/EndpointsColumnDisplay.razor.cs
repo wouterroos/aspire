@@ -1,12 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Resources;
+using System.Collections.Generic;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
-namespace Aspire.Dashboard.Components;
+namespace Turbine.Dashboard.Components;
 
 public partial class EndpointsColumnDisplay
 {

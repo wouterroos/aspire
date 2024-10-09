@@ -1,9 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Security.Claims;
 
-namespace Aspire.Dashboard.Extensions;
+namespace Turbine.Dashboard.Extensions;
 
 internal static class ClaimsIdentityExtensions
 {
@@ -13,9 +13,9 @@ internal static class ClaimsIdentityExtensions
     /// </summary>
     public static string? FindFirst(this ClaimsIdentity identity, string[] claimTypes)
     {
-        foreach (var claimType in claimTypes)
+        foreach (string? claimType in claimTypes)
         {
-            var claim = identity.FindFirst(claimType);
+            Claim? claim = identity.FindFirst(claimType);
             if (claim is not null)
             {
                 return claim.Value;

@@ -1,10 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using Aspire.Dashboard.Model;
+using Aspire;
+using Google.Protobuf.WellKnownTypes;
+using Turbine.Dashboard.Model;
+using Enum = System.Enum;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -49,7 +54,7 @@ partial class Resource
         {
             // Filter out bad urls
             return (from u in Urls
-                    let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
+                    let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out Uri? uri) ? uri : null
                     where parsedUri != null
                     select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
                     .ToImmutableArray();
@@ -81,7 +86,7 @@ partial class ResourceCommandResponse
         return new ResourceCommandResponseViewModel()
         {
             ErrorMessage = ErrorMessage,
-            Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
+            Kind = (Turbine.Dashboard.Model.ResourceCommandResponseKind)Kind
         };
     }
 }

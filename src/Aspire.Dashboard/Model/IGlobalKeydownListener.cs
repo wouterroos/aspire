@@ -1,15 +1,19 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-namespace Aspire.Dashboard.Model;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace Turbine.Dashboard.Model;
 
 public interface IGlobalKeydownListener
 {
-    IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; }
-    Task OnPageKeyDownAsync(AspireKeyboardShortcut shortcut);
+    IReadOnlySet<TurbineKeyboardShortcut> SubscribedShortcuts { get; }
+
+    Task OnPageKeyDownAsync(TurbineKeyboardShortcut shortcut);
 }
 
-public enum AspireKeyboardShortcut
+public enum TurbineKeyboardShortcut
 {
     Help = 100,
     Settings = 110,

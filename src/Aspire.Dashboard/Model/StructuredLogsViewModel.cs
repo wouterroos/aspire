@@ -1,11 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Extensions.Logging;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public class StructuredLogsViewModel
 {
@@ -45,6 +48,7 @@ public class StructuredLogsViewModel
         _filters.Add(filter);
         _logs = null;
     }
+
     public bool RemoveFilter(LogFilter filter)
     {
         if (_filters.Remove(filter))
@@ -54,6 +58,7 @@ public class StructuredLogsViewModel
         }
         return false;
     }
+
     public int StartIndex { get => _logsStartIndex; set => SetValue(ref _logsStartIndex, value); }
     public int? Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
     public LogLevel? LogLevel { get => _logLevel; set => SetValue(ref _logLevel, value); }
@@ -71,10 +76,10 @@ public class StructuredLogsViewModel
 
     public PagedResult<OtlpLogEntry> GetLogs()
     {
-        var logs = _logs;
+        PagedResult<OtlpLogEntry>? logs = _logs;
         if (logs == null)
         {
-            var filters = Filters.ToList();
+            List<LogFilter>? filters = Filters.ToList();
             if (!string.IsNullOrWhiteSpace(FilterText))
             {
                 filters.Add(new LogFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });

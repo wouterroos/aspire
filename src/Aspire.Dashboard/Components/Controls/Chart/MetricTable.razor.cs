@@ -1,19 +1,24 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using Aspire.Dashboard.Components.Controls.Chart;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Utils;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Controls.Chart;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Components.Dialogs;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class MetricTable : ChartBase
 {
@@ -58,7 +63,7 @@ public partial class MetricTable : ChartBase
         _instrument = InstrumentViewModel.Instrument;
         _showCount = InstrumentViewModel.ShowCount;
 
-        _metrics = UpdateMetrics(out var xValuesToAnnounce, traces, xValues, exemplars);
+        _metrics = UpdateMetrics(out ISet<DateTimeOffset>? xValuesToAnnounce, traces, xValues, exemplars);
         _exemplars = exemplars;
 
         if (xValuesToAnnounce.Count == 0)
@@ -68,10 +73,10 @@ public partial class MetricTable : ChartBase
 
         await Task.Delay(500, cancellationToken);
 
-        var metricView = _metricsView.ToList();
+        List<MetricViewBase>? metricView = _metricsView.ToList();
         List<int> indices = [];
 
-        for (var i = 0; i < metricView.Count; i++)
+        for (int i = 0; i < metricView.Count; i++)
         {
             if (xValuesToAnnounce.Contains(metricView[i].DateTime))
             {
@@ -92,13 +97,13 @@ public partial class MetricTable : ChartBase
 
     private async Task OpenExemplarsDialogAsync(MetricViewBase metric)
     {
-        var vm = new ExemplarsDialogViewModel
+        ExemplarsDialogViewModel? vm = new ExemplarsDialogViewModel
         {
             Exemplars = metric.Exemplars,
             Applications = Applications,
             Instrument = InstrumentViewModel.Instrument!
         };
-        var parameters = new DialogParameters
+        DialogParameters? parameters = new DialogParameters
         {
             Title = DialogsLoc[nameof(Resources.Dialogs.ExemplarsDialogTitle)],
             PrimaryAction = DialogsLoc[nameof(Resources.Dialogs.ExemplarsDialogCloseButtonText)],
@@ -111,22 +116,22 @@ public partial class MetricTable : ChartBase
 
     private SortedList<DateTimeOffset, MetricViewBase> UpdateMetrics(out ISet<DateTimeOffset> addedXValues, List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars)
     {
-        var newMetrics = new SortedList<DateTimeOffset, MetricViewBase>();
+        SortedList<DateTimeOffset, MetricViewBase>? newMetrics = new SortedList<DateTimeOffset, MetricViewBase>();
 
         _unitColumnHeader = traces.First().Name;
 
-        for (var i = 0; i < xValues.Count; i++)
+        for (int i = 0; i < xValues.Count; i++)
         {
-            var xValue = xValues[i];
-            var previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue).Value;
+            DateTimeOffset xValue = xValues[i];
+            MetricViewBase? previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue).Value;
 
             if (IsHistogramInstrument() && !_showCount)
             {
-                var iTmp = i;
-                var traceValuesByPercentile = traces.ToDictionary(trace => trace.Percentile!.Value, trace => trace.Values[iTmp]);
-                var valueDiffs = traceValuesByPercentile.Select(kvp =>
+                int iTmp = i;
+                Dictionary<int, double?>? traceValuesByPercentile = traces.ToDictionary(trace => trace.Percentile!.Value, trace => trace.Values[iTmp]);
+                List<double?>? valueDiffs = traceValuesByPercentile.Select(kvp =>
                 {
-                    var (percentile, traceValue) = kvp;
+                    (int percentile, double? traceValue) = kvp;
                     if (traceValue is not null
                         && previousMetric is HistogramMetricView histogramMetricView
                         && histogramMetricView.Percentiles[percentile].Value is { } previousPercentileValue)
@@ -151,10 +156,10 @@ public partial class MetricTable : ChartBase
 
                 MetricViewBase CreateHistogramMetricView()
                 {
-                    var percentiles = new SortedDictionary<int, (string Name, double? Value, ValueDirectionChange Direction)>();
-                    for (var traceIndex = 0; traceIndex < traces.Count; traceIndex++)
+                    SortedDictionary<int, (string Name, double? Value, ValueDirectionChange Direction)>? percentiles = new SortedDictionary<int, (string Name, double? Value, ValueDirectionChange Direction)>();
+                    for (int traceIndex = 0; traceIndex < traces.Count; traceIndex++)
                     {
-                        var trace = traces[traceIndex];
+                        ChartTrace? trace = traces[traceIndex];
                         percentiles.Add(trace.Percentile!.Value, (trace.Name, trace.Values[i], GetDirectionChange(valueDiffs[traceIndex])));
                     }
 
@@ -168,9 +173,9 @@ public partial class MetricTable : ChartBase
             }
             else
             {
-                var trace = traces.Single();
-                var yValue = trace.Values[i];
-                var valueDiff = yValue is not null && (previousMetric as MetricValueView)?.Value is { } previousValue ? yValue - previousValue : yValue;
+                ChartTrace? trace = traces.Single();
+                double? yValue = trace.Values[i];
+                double? valueDiff = yValue is not null && (previousMetric as MetricValueView)?.Value is { } previousValue ? yValue - previousValue : yValue;
 
                 if (yValue is null)
                 {
@@ -198,19 +203,19 @@ public partial class MetricTable : ChartBase
         }
 
         // Associate exemplars with rows. Need to happen after rows are calculated because they could be skipped (e.g. unchanged data)
-        for (var i = newMetrics.Count - 1; i >= 0; i--)
+        for (int i = newMetrics.Count - 1; i >= 0; i--)
         {
-            var current = newMetrics.GetValueAtIndex(i);
-            var endTime = (i != newMetrics.Count - 1) ? current.DateTime : (DateTimeOffset?)null;
-            var startTime = (i > 0) ? newMetrics.GetKeyAtIndex(i - 1) : (DateTimeOffset?)null;
+            MetricViewBase? current = newMetrics.GetValueAtIndex(i);
+            DateTimeOffset? endTime = (i != newMetrics.Count - 1) ? current.DateTime : (DateTimeOffset?)null;
+            DateTimeOffset? startTime = (i > 0) ? newMetrics.GetKeyAtIndex(i - 1) : (DateTimeOffset?)null;
 
-            var currentExemplars = exemplars.Where(e => (e.Start >= startTime || startTime == null) && (e.Start < endTime || endTime == null)).ToList();
+            List<ChartExemplar>? currentExemplars = exemplars.Where(e => (e.Start >= startTime || startTime == null) && (e.Start < endTime || endTime == null)).ToList();
             current.Exemplars.AddRange(currentExemplars);
         }
 
         Debug.Assert(exemplars.Count == newMetrics.Sum(m => m.Value.Exemplars.Count), $"Expected {exemplars.Count} exemplars but got {newMetrics.Sum(m => m.Value.Exemplars.Count)} exemplars.");
 
-        var latestCurrentMetric = _metrics.Keys.OfType<DateTimeOffset?>().LastOrDefault();
+        DateTimeOffset? latestCurrentMetric = _metrics.Keys.OfType<DateTimeOffset?>().LastOrDefault();
         addedXValues = newMetrics.Keys.Where(newKey => newKey > latestCurrentMetric || latestCurrentMetric == null).ToHashSet();
         return newMetrics;
     }

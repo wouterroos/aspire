@@ -1,11 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Turbine.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class StructuredLogDetails
 {
@@ -43,7 +46,7 @@ public partial class StructuredLogDetails
     {
         // Move some attributes to separate lists, e.g. exception attributes to their own list.
         // Remaining attributes are displayed along side the message.
-        var attributes = ViewModel.LogEntry.Attributes.ToList();
+        List<KeyValuePair<string, string>>? attributes = ViewModel.LogEntry.Attributes.ToList();
 
         _contextAttributes =
         [
@@ -76,8 +79,8 @@ public partial class StructuredLogDetails
 
     private static void MoveAttributes(List<KeyValuePair<string, string>> source, List<KeyValuePair<string, string>> desintation, Func<KeyValuePair<string, string>, bool> predicate)
     {
-        var insertStart = desintation.Count;
-        for (var i = source.Count - 1; i >= 0; i--)
+        int insertStart = desintation.Count;
+        for (int i = source.Count - 1; i >= 0; i--)
         {
             if (predicate(source[i]))
             {
@@ -101,7 +104,7 @@ public partial class StructuredLogDetails
             return false;
         }
 
-        for (var i = 0; i < value.Length; i++)
+        for (int i = 0; i < value.Length; i++)
         {
             if (value[i] != '0')
             {

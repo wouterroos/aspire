@@ -1,10 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using Microsoft.AspNetCore.Authorization;
-using Aspire.Dashboard.Configuration;
+using Turbine.Dashboard.Configuration;
 
-namespace Aspire.Dashboard.Authentication.OpenIdConnect;
+namespace Turbine.Dashboard.Authentication.OpenIdConnect;
 
 internal static class AuthorizationPolicyBuilderExtensions
 {
@@ -13,16 +13,16 @@ internal static class AuthorizationPolicyBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Checks are controlled by configuration.
-    /// 
+    ///
     /// If <see cref="OpenIdConnectOptions.RequiredClaimType"/> is non-empty, a requirement for the claim is added.
-    /// 
+    ///
     /// If a claim is being checked and <see cref="OpenIdConnectOptions.RequiredClaimValue"/> is non-empty, then the
     /// requirement is extended to also validate the specified value.
     /// </remarks>
     public static AuthorizationPolicyBuilder RequireOpenIdClaims(this AuthorizationPolicyBuilder builder, OpenIdConnectOptions options)
     {
-        var claimType = options.RequiredClaimType;
-        var claimValue = options.RequiredClaimValue;
+        string? claimType = options.RequiredClaimType;
+        string? claimValue = options.RequiredClaimValue;
 
         if (!string.IsNullOrWhiteSpace(claimType))
         {

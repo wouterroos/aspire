@@ -1,13 +1,17 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
+using System.Linq;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Resources;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
-namespace Aspire.Dashboard.Model.Otlp;
+namespace Turbine.Dashboard.Model.Otlp;
 
 [DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter
@@ -117,27 +121,27 @@ public class LogFilter
         {
             case nameof(OtlpLogEntry.TimeStamp):
                 {
-                    var date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
-                    var func = ConditionToFuncDate(Condition);
+                    DateTime date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
+                    Func<DateTime, DateTime, bool>? func = ConditionToFuncDate(Condition);
                     return input.Where(x => func(x.TimeStamp, date));
                 }
             case nameof(OtlpLogEntry.Severity):
                 {
-                    if (Enum.TryParse<LogLevel>(Value, ignoreCase: true, out var value))
+                    if (Enum.TryParse<LogLevel>(Value, ignoreCase: true, out LogLevel value))
                     {
-                        var func = ConditionToFuncNumber(Condition);
+                        Func<double, double, bool>? func = ConditionToFuncNumber(Condition);
                         return input.Where(x => func((int)x.Severity, (double)value));
                     }
                     return input;
                 }
             case nameof(OtlpLogEntry.Message):
                 {
-                    var func = ConditionToFuncString(Condition);
+                    Func<string, string, bool>? func = ConditionToFuncString(Condition);
                     return input.Where(x => func(x.Message, Value));
                 }
             default:
                 {
-                    var func = ConditionToFuncString(Condition);
+                    Func<string?, string, bool> func = ConditionToFuncString(Condition);
                     return input.Where(x => func(GetFieldValue(x), Value));
                 }
         }

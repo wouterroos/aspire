@@ -1,5 +1,5 @@
 ﻿@page "/login"
-@using Aspire.Dashboard.Utils
+@using Turbine.Dashboard.Utils
 @layout EmptyLayout
 @attribute [AllowAnonymous]
 @inject IStringLocalizer<Dashboard.Resources.Login> Loc
@@ -11,7 +11,7 @@
         <DataAnnotationsValidator />
         <div class="token-form-container">
             <div class="token-logo">
-                <AspireLogo Height="128" Width="128" />
+                <TurbineLogo Height="128" Width="128" />
             </div>
             <div class="token-entry-container">
                 <div class="token-entry-header">

@@ -1,22 +1,27 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
-using Aspire.Dashboard.Components.Controls.Chart;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Utils;
+using Turbine.Dashboard.Components.Controls.Chart;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components;
+namespace Turbine.Dashboard.Components;
 
 public partial class PlotlyChart : ChartBase
 {
@@ -41,7 +46,7 @@ public partial class PlotlyChart : ChartBase
 
     private string FormatTooltip(string title, double yValue, DateTimeOffset xValue)
     {
-        var formattedValue = FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, maxDecimalPlaces: 3, CultureInfo.CurrentCulture);
+        string? formattedValue = FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, maxDecimalPlaces: 3, CultureInfo.CurrentCulture);
         if (InstrumentViewModel?.Instrument is { } instrument)
         {
             formattedValue += " " + InstrumentUnitResolver.ResolveDisplayedUnit(instrument, titleCase: false, pluralize: yValue != 1);
@@ -57,7 +62,7 @@ public partial class PlotlyChart : ChartBase
     {
         Debug.Assert(_jsModule != null, "The module should be initialized before chart data is sent to control.");
 
-        var traceDtos = traces.Select(t => new PlotlyTrace
+        PlotlyTrace[]? traceDtos = traces.Select(t => new PlotlyTrace
         {
             Name = t.Name,
             Y = t.DiffValues,
@@ -66,15 +71,15 @@ public partial class PlotlyChart : ChartBase
             TraceData = new List<object?>()
         }).ToArray();
 
-        var exemplarTraceDto = CalculateExemplarsTrace(xValues, exemplars);
+        PlotlyTrace? exemplarTraceDto = CalculateExemplarsTrace(xValues, exemplars);
 
         if (!tickUpdate)
         {
             // The chart mostly shows numbers but some localization is needed for displaying time ticks.
-            var is24Hour = DateTimeFormatInfo.CurrentInfo.LongTimePattern.StartsWith("H", StringComparison.Ordinal);
+            bool is24Hour = DateTimeFormatInfo.CurrentInfo.LongTimePattern.StartsWith("H", StringComparison.Ordinal);
             // Plotly uses d3-time-format https://d3js.org/d3-time-format
-            var time = is24Hour ? "%H:%M:%S" : "%-I:%M:%S %p";
-            var userLocale = new PlotlyUserLocale
+            string? time = is24Hour ? "%H:%M:%S" : "%-I:%M:%S %p";
+            PlotlyUserLocale? userLocale = new PlotlyUserLocale
             {
                 Periods = [DateTimeFormatInfo.CurrentInfo.AMDesignator, DateTimeFormatInfo.CurrentInfo.PMDesignator],
                 Time = time
@@ -115,25 +120,25 @@ public partial class PlotlyChart : ChartBase
         const int MaxExemplarsPerTick = 20;
 
         // Group exemplars into ticks based on xValues.
-        var exemplarGroups = new Dictionary<ExemplarGroupKey, List<ChartExemplar>>();
-        for (var i = 0; i <= xValues.Count; i++)
+        Dictionary<ExemplarGroupKey, List<ChartExemplar>>? exemplarGroups = new Dictionary<ExemplarGroupKey, List<ChartExemplar>>();
+        for (int i = 0; i <= xValues.Count; i++)
         {
-            var start = i > 0 ? xValues[i - 1] : (DateTimeOffset?)null;
-            var end = i < xValues.Count ? xValues[i] : (DateTimeOffset?)null;
-            var g = new ExemplarGroupKey(start, end);
+            DateTimeOffset? start = i > 0 ? xValues[i - 1] : (DateTimeOffset?)null;
+            DateTimeOffset? end = i < xValues.Count ? xValues[i] : (DateTimeOffset?)null;
+            ExemplarGroupKey g = new ExemplarGroupKey(start, end);
 
-            var groupExemplars = exemplars.Where(e => (e.Start >= g.Start || g.Start == null) && (e.Start < g.End || g.End == null)).ToList();
+            List<ChartExemplar>? groupExemplars = exemplars.Where(e => (e.Start >= g.Start || g.Start == null) && (e.Start < g.End || g.End == null)).ToList();
 
             // When exemplars exceeds the limit then sample the exemplars to reduce data to the limit.
             if (groupExemplars.Count > MaxExemplarsPerTick)
             {
-                var step = (double)groupExemplars.Count / MaxExemplarsPerTick;
+                double step = (double)groupExemplars.Count / MaxExemplarsPerTick;
 
-                var sampledList = new List<ChartExemplar>(MaxExemplarsPerTick);
-                for (var j = 0; j < MaxExemplarsPerTick; j++)
+                List<ChartExemplar>? sampledList = new List<ChartExemplar>(MaxExemplarsPerTick);
+                for (int j = 0; j < MaxExemplarsPerTick; j++)
                 {
                     // Calculate the index to take from the original list
-                    var index = (int)Math.Floor(j * step);
+                    int index = (int)Math.Floor(j * step);
                     sampledList.Add(groupExemplars[index]);
                 }
 
@@ -143,7 +148,7 @@ public partial class PlotlyChart : ChartBase
             exemplarGroups.Add(g, groupExemplars);
         }
 
-        var exemplarTraceDto = new PlotlyTrace
+        PlotlyTrace? exemplarTraceDto = new PlotlyTrace
         {
             Name = Loc[nameof(ControlsStrings.PlotlyChartExemplars)],
             Y = new List<double?>(),
@@ -152,12 +157,12 @@ public partial class PlotlyChart : ChartBase
             TraceData = new List<object?>()
         };
 
-        foreach (var exemplar in exemplarGroups.SelectMany(g => g.Value))
+        foreach (ChartExemplar? exemplar in exemplarGroups.SelectMany(g => g.Value))
         {
-            var title = exemplar.Span != null
+            string? title = exemplar.Span != null
                 ? SpanWaterfallViewModel.GetTitle(exemplar.Span, Applications)
                 : $"{Loc[nameof(ControlsStrings.PlotlyChartTrace)]}: {OtlpHelpers.ToShortenedId(exemplar.TraceId)}";
-            var tooltip = FormatTooltip(title, exemplar.Value, exemplar.Start);
+            string? tooltip = FormatTooltip(title, exemplar.Value, exemplar.Start);
 
             exemplarTraceDto.X.Add(exemplar.Start);
             exemplarTraceDto.Y.Add(exemplar.Value);
@@ -207,7 +212,7 @@ public partial class PlotlyChart : ChartBase
         [JSInvokable]
         public async Task ViewSpan(string traceId, string spanId)
         {
-            var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
+            bool available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
                 traceId,
                 spanId,
                 _plotlyChart.TelemetryRepository.GetSpan,

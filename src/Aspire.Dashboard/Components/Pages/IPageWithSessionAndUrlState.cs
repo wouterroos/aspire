@@ -1,10 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Components.Layout;
+using System;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Layout;
 using Microsoft.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 /// <summary>
 /// Represents a page that can contain state both in the url and in localstorage.
@@ -56,7 +58,7 @@ public static class PageExtensions
     /// Called after a change in the view model that will affect the url associated with new page state
     /// to navigate to the new url and save new state in localstorage.
     /// </summary>
-    public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, AspirePageContentLayout? layout, bool isChangeInToolbar) where TSerializableViewModel : class
+    public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, TurbinePageContentLayout? layout, bool isChangeInToolbar) where TSerializableViewModel : class
     {
         // if the mobile filter dialog is open, we want to wait until the dialog is closed to apply all changes
         // we should only apply the last invocation, as TViewModel will be up-to-date
@@ -71,8 +73,8 @@ public static class PageExtensions
 
         async Task SetStateAndNavigateAsync()
         {
-            var serializableViewModel = page.ConvertViewModelToSerializable();
-            var pathWithParameters = page.GetUrlFromSerializableViewModel(serializableViewModel);
+            TSerializableViewModel? serializableViewModel = page.ConvertViewModelToSerializable();
+            string? pathWithParameters = page.GetUrlFromSerializableViewModel(serializableViewModel);
 
             page.NavigationManager.NavigateTo(pathWithParameters);
             await page.SessionStorage.SetAsync(page.SessionStorageKey, serializableViewModel).ConfigureAwait(false);
@@ -83,10 +85,10 @@ public static class PageExtensions
     {
         if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)))
         {
-            var result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
+            StorageResult<TSerializableViewModel> result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
             if (result is { Success: true, Value: not null })
             {
-                var newUrl = page.GetUrlFromSerializableViewModel(result.Value).ToString();
+                string? newUrl = page.GetUrlFromSerializableViewModel(result.Value).ToString();
 
                 // Don't navigate if the URL redirects to itself.
                 if (newUrl != "/" + page.BasePath)

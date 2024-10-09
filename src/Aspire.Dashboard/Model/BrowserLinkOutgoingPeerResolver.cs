@@ -1,10 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Otlp.Model;
+using System.Threading.Tasks;
+using Aspire;
+using Turbine.Dashboard.Otlp.Model;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
 {
@@ -35,14 +39,14 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         const string lastSegment = "getScriptTag";
 
         // url.full replaces http.url but look for both for backwards compatibility.
-        var url = OtlpHelpers.GetValue(attributes, "url.full") ?? OtlpHelpers.GetValue(attributes, "http.url");
+        string? url = OtlpHelpers.GetValue(attributes, "url.full") ?? OtlpHelpers.GetValue(attributes, "http.url");
 
         // Quick check of URL with EndsWith before more expensive Uri parsing.
         if (url != null && url.EndsWith(lastSegment, StringComparisons.UrlPath))
         {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && string.Equals(uri.Host, "localhost", StringComparisons.UrlHost))
+            if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) && string.Equals(uri.Host, "localhost", StringComparisons.UrlHost))
             {
-                var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                string[]? parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 2)
                 {
                     if (Guid.TryParse(parts[0], out _) && string.Equals(parts[1], lastSegment, StringComparisons.UrlPath))

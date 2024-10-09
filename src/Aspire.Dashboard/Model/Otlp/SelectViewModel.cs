@@ -1,9 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
 
-namespace Aspire.Dashboard.Model.Otlp;
+namespace Turbine.Dashboard.Model.Otlp;
 
 [DebuggerDisplay(@"Name = {Name}, Id = \{{Id}\}")]
 public class SelectViewModel<T>

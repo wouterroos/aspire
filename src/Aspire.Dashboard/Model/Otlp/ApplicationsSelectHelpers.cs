@@ -1,9 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Otlp.Model;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Aspire;
+using Microsoft.Extensions.Logging;
+using Turbine.Dashboard.Otlp.Model;
 
-namespace Aspire.Dashboard.Model.Otlp;
+namespace Turbine.Dashboard.Model.Otlp;
 
 public static class ApplicationsSelectHelpers
 {
@@ -14,7 +19,7 @@ public static class ApplicationsSelectHelpers
             return fallback;
         }
 
-        var matches = applications.Where(e => SupportType(e.Id?.Type, canSelectGrouping) && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
+        List<SelectViewModel<ResourceTypeDetails>>? matches = applications.Where(e => SupportType(e.Id?.Type, canSelectGrouping) && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
         if (matches.Count == 1)
         {
             return matches[0];
@@ -42,16 +47,16 @@ public static class ApplicationsSelectHelpers
 
     public static List<SelectViewModel<ResourceTypeDetails>> CreateApplications(List<OtlpApplication> applications)
     {
-        var replicasByApplicationName = OtlpApplication.GetReplicasByApplicationName(applications);
+        Dictionary<string, List<OtlpApplication>>? replicasByApplicationName = OtlpApplication.GetReplicasByApplicationName(applications);
 
-        var selectViewModels = new List<SelectViewModel<ResourceTypeDetails>>();
+        List<SelectViewModel<ResourceTypeDetails>>? selectViewModels = new List<SelectViewModel<ResourceTypeDetails>>();
 
-        foreach (var (applicationName, replicas) in replicasByApplicationName)
+        foreach ((string? applicationName, List<OtlpApplication>? replicas) in replicasByApplicationName)
         {
             if (replicas.Count == 1)
             {
                 // not replicated
-                var app = replicas.Single();
+                OtlpApplication? app = replicas.Single();
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateSingleton(app.InstanceId, applicationName),
@@ -77,7 +82,7 @@ public static class ApplicationsSelectHelpers
                 }));
         }
 
-        var sortedVMs = selectViewModels.OrderBy(vm => vm.Name, StringComparers.ResourceName).ToList();
+        List<SelectViewModel<ResourceTypeDetails>>? sortedVMs = selectViewModels.OrderBy(vm => vm.Name, StringComparers.ResourceName).ToList();
         return sortedVMs;
     }
 

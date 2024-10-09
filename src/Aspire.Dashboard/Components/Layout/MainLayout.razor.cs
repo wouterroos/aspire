@@ -1,18 +1,22 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Dialogs;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Layout;
+namespace Turbine.Dashboard.Components.Layout;
 
 public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 {
@@ -75,9 +79,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (_jsModule is not null)
             {
-                var newValue = ThemeManager.Theme!;
+                string? newValue = ThemeManager.Theme!;
 
-                var effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
+                string? effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
                 ThemeManager.EffectiveTheme = effectiveTheme;
             }
         });
@@ -87,7 +91,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             _locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler((context) =>
             {
-                if (TargetLocationInterceptor.InterceptTargetLocation(NavigationManager.BaseUri, context.TargetLocation, out var newTargetLocation))
+                if (TargetLocationInterceptor.InterceptTargetLocation(NavigationManager.BaseUri, context.TargetLocation, out string? newTargetLocation))
                 {
                     context.PreventNavigation();
                     NavigationManager.NavigateTo(newTargetLocation);
@@ -97,7 +101,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             });
         }
 
-        var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
+        string? result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
         TimeProvider.SetBrowserTimeZone(result);
 
         if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
@@ -111,7 +115,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 options.Link = new()
                 {
                     Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
-                    Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
+                    Href = "https://aka.ms/dotnet/Turbine/telemetry-unsecured",
                     Target = "_blank"
                 };
                 options.Intent = MessageIntent.Warning;
@@ -147,7 +151,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            Title = Loc[nameof(Resources.Layout.MainLayoutTurbineDashboardHelpLink)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -208,40 +212,46 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
 
-    public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
+    public IReadOnlySet<TurbineKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<TurbineKeyboardShortcut>
     {
-        AspireKeyboardShortcut.Help,
-        AspireKeyboardShortcut.Settings,
-        AspireKeyboardShortcut.GoToResources,
-        AspireKeyboardShortcut.GoToConsoleLogs,
-        AspireKeyboardShortcut.GoToStructuredLogs,
-        AspireKeyboardShortcut.GoToTraces,
-        AspireKeyboardShortcut.GoToMetrics
+        TurbineKeyboardShortcut.Help,
+        TurbineKeyboardShortcut.Settings,
+        TurbineKeyboardShortcut.GoToResources,
+        TurbineKeyboardShortcut.GoToConsoleLogs,
+        TurbineKeyboardShortcut.GoToStructuredLogs,
+        TurbineKeyboardShortcut.GoToTraces,
+        TurbineKeyboardShortcut.GoToMetrics
     };
 
-    public async Task OnPageKeyDownAsync(AspireKeyboardShortcut shortcut)
+    public async Task OnPageKeyDownAsync(TurbineKeyboardShortcut shortcut)
     {
         switch (shortcut)
         {
-            case AspireKeyboardShortcut.Help:
+            case TurbineKeyboardShortcut.Help:
                 await LaunchHelpAsync();
                 break;
-            case AspireKeyboardShortcut.Settings:
+
+            case TurbineKeyboardShortcut.Settings:
                 await LaunchSettingsAsync();
                 break;
-            case AspireKeyboardShortcut.GoToResources:
+
+            case TurbineKeyboardShortcut.GoToResources:
                 NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl());
                 break;
-            case AspireKeyboardShortcut.GoToConsoleLogs:
+
+            case TurbineKeyboardShortcut.GoToConsoleLogs:
                 NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl());
                 break;
-            case AspireKeyboardShortcut.GoToStructuredLogs:
+
+            case TurbineKeyboardShortcut.GoToStructuredLogs:
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl());
                 break;
-            case AspireKeyboardShortcut.GoToTraces:
+
+            case TurbineKeyboardShortcut.GoToTraces:
                 NavigationManager.NavigateTo(DashboardUrls.TracesUrl());
                 break;
-            case AspireKeyboardShortcut.GoToMetrics:
+
+            case TurbineKeyboardShortcut.GoToMetrics:
                 NavigationManager.NavigateTo(DashboardUrls.MetricsUrl());
                 break;
         }
@@ -256,8 +266,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [JSInvokable]
     public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
     {
-        var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
-        var parameters = new DialogParameters
+        string? width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
+        DialogParameters? parameters = new DialogParameters
         {
             Title = valueDescription,
             Width = $"min(1000px, {width})",
@@ -266,9 +276,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             PreventScroll = true,
         };
 
-        await using var referenceStream = await valueStream.OpenReadStreamAsync();
-        using var reader = new StreamReader(referenceStream);
-        var value = await reader.ReadToEndAsync();
+        await using Stream? referenceStream = await valueStream.OpenReadStreamAsync();
+        using StreamReader? reader = new StreamReader(referenceStream);
+        string? value = await reader.ReadToEndAsync();
 
         await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
     }

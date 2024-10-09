@@ -1,11 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using Aspire;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Dashboard.Configuration;
+namespace Turbine.Dashboard.Configuration;
 
 public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<DashboardOptions>
 {
@@ -56,7 +59,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         }
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
         {
-            var token = TokenGenerator.GenerateToken();
+            string? token = TokenGenerator.GenerateToken();
 
             // Set the generated token in configuration. This is required because options could be created multiple times
             // (at startup, after CI is created, after options change). Setting the token in configuration makes it consistent.

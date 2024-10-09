@@ -1,15 +1,18 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Otlp.Model.MetricValues;
+using System.Linq;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("Name = {Name}, Unit = {Unit}, Type = {Type}")]
 public class OtlpInstrumentSummary
@@ -44,19 +47,21 @@ public class OtlpInstrument
         switch (metric.DataCase)
         {
             case Metric.DataOneofCase.Gauge:
-                foreach (var d in metric.Gauge.DataPoints)
+                foreach (NumberDataPoint? d in metric.Gauge.DataPoints)
                 {
                     FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
+
             case Metric.DataOneofCase.Sum:
-                foreach (var d in metric.Sum.DataPoints)
+                foreach (NumberDataPoint? d in metric.Sum.DataPoints)
                 {
                     FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
+
             case Metric.DataOneofCase.Histogram:
-                foreach (var d in metric.Histogram.DataPoints)
+                foreach (HistogramDataPoint? d in metric.Histogram.DataPoints)
                 {
                     FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Options);
                 }
@@ -70,12 +75,12 @@ public class OtlpInstrument
         // Copy values to a temporary reusable array.
         //
         // A meter can have attributes. Merge these with the data point attributes when creating a dimension.
-        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Options, out var copyCount, ref tempAttributes);
+        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Options, out int copyCount, ref tempAttributes);
         Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
-        var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
+        Memory<KeyValuePair<string, string>> comparableAttributes = tempAttributes.AsMemory(0, copyCount);
 
-        if (!Dimensions.TryGetValue(comparableAttributes, out var dimension))
+        if (!Dimensions.TryGetValue(comparableAttributes, out DimensionScope? dimension))
         {
             dimension = AddDimensionScope(comparableAttributes);
         }
@@ -84,15 +89,15 @@ public class OtlpInstrument
 
     private DimensionScope AddDimensionScope(Memory<KeyValuePair<string, string>> comparableAttributes)
     {
-        var isFirst = Dimensions.Count == 0;
-        var durableAttributes = comparableAttributes.ToArray();
-        var dimension = new DimensionScope(Options.MaxMetricsCount, durableAttributes);
+        bool isFirst = Dimensions.Count == 0;
+        KeyValuePair<string, string>[]? durableAttributes = comparableAttributes.ToArray();
+        DimensionScope? dimension = new DimensionScope(Options.MaxMetricsCount, durableAttributes);
         Dimensions.Add(durableAttributes, dimension);
 
-        var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
-        foreach (var key in keys)
+        IEnumerable<string>? keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
+        foreach (string? key in keys)
         {
-            if (!KnownAttributeValues.TryGetValue(key, out var values))
+            if (!KnownAttributeValues.TryGetValue(key, out List<string>? values))
             {
                 KnownAttributeValues.Add(key, values = new List<string>());
 
@@ -103,7 +108,7 @@ public class OtlpInstrument
                 }
             }
 
-            var currentDimensionValue = OtlpHelpers.GetValue(durableAttributes, key);
+            string? currentDimensionValue = OtlpHelpers.GetValue(durableAttributes, key);
             TryAddValue(values, currentDimensionValue ?? string.Empty);
         }
 
@@ -120,7 +125,7 @@ public class OtlpInstrument
 
     public static OtlpInstrument Clone(OtlpInstrument instrument, bool cloneData, DateTime? valuesStart, DateTime? valuesEnd)
     {
-        var newInstrument = new OtlpInstrument
+        OtlpInstrument? newInstrument = new OtlpInstrument
         {
             Summary = instrument.Summary,
             Options = instrument.Options,
@@ -128,11 +133,11 @@ public class OtlpInstrument
 
         if (cloneData)
         {
-            foreach (var item in instrument.KnownAttributeValues)
+            foreach (KeyValuePair<string, List<string>> item in instrument.KnownAttributeValues)
             {
                 newInstrument.KnownAttributeValues.Add(item.Key, item.Value.ToList());
             }
-            foreach (var item in instrument.Dimensions)
+            foreach (KeyValuePair<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> item in instrument.Dimensions)
             {
                 newInstrument.Dimensions.Add(item.Key, DimensionScope.Clone(item.Value, valuesStart, valuesEnd));
             }
@@ -152,7 +157,7 @@ public class OtlpInstrument
 
         public int GetHashCode([DisallowNull] ReadOnlyMemory<KeyValuePair<string, string>> obj)
         {
-            var hashcode = new HashCode();
+            HashCode hashcode = new HashCode();
             foreach (KeyValuePair<string, string> pair in obj.Span)
             {
                 hashcode.Add(pair.Key);

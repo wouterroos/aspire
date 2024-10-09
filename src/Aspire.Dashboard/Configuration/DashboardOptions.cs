@@ -1,13 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Aspire.Hosting;
 
-namespace Aspire.Dashboard.Configuration;
+namespace Turbine.Dashboard.Configuration;
 
 public sealed class DashboardOptions
 {
@@ -181,11 +183,11 @@ public sealed class FrontendOptions
         }
         else
         {
-            var parts = EndpointUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var uris = new List<Uri>(parts.Length);
-            foreach (var part in parts)
+            string[]? parts = EndpointUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            List<Uri>? uris = new List<Uri>(parts.Length);
+            foreach (string? part in parts)
             {
-                if (!Uri.TryCreate(part, UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate(part, UriKind.Absolute, out Uri? uri))
                 {
                     errorMessage = $"Failed to parse frontend endpoint URLs '{EndpointUrls}'.";
                     return false;

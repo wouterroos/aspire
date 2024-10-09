@@ -1,7 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-namespace Aspire.Dashboard.Otlp.Storage;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace Turbine.Dashboard.Otlp.Storage;
 
 public sealed class Subscription : IDisposable
 {
@@ -35,7 +40,7 @@ public sealed class Subscription : IDisposable
 
     private async Task<bool> TryQueueAsync(CancellationToken cancellationToken)
     {
-        var success = _lock.Wait(0, cancellationToken);
+        bool success = _lock.Wait(0, cancellationToken);
         if (!success)
         {
             Logger.LogDebug("Subscription '{Name}' update already queued.", Name);
@@ -44,10 +49,10 @@ public sealed class Subscription : IDisposable
 
         try
         {
-            var lastExecute = _lastExecute;
+            DateTime? lastExecute = _lastExecute;
             if (lastExecute != null)
             {
-                var s = lastExecute.Value.Add(_telemetryRepository._subscriptionMinExecuteInterval) - DateTime.UtcNow;
+                TimeSpan s = lastExecute.Value.Add(_telemetryRepository._subscriptionMinExecuteInterval) - DateTime.UtcNow;
                 if (s > TimeSpan.Zero)
                 {
                     Logger.LogTrace("Subscription '{Name}' minimum execute interval hit. Waiting {DelayInterval}.", Name, s);

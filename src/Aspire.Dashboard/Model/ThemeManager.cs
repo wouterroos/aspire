@@ -1,10 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Utils;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Utils;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public interface IEffectiveThemeResolver
 {
@@ -83,7 +87,7 @@ public sealed class ThemeManager
     {
         lock (_lock)
         {
-            var subscription = new ModelSubscription(callback, RemoveSubscription);
+            ModelSubscription? subscription = new ModelSubscription(callback, RemoveSubscription);
             _subscriptions.Add(subscription);
             return subscription;
         }
@@ -112,7 +116,7 @@ public sealed class ThemeManager
             subscriptions = _subscriptions.ToArray();
         }
 
-        foreach (var subscription in subscriptions)
+        foreach (ModelSubscription? subscription in subscriptions)
         {
             await subscription.ExecuteAsync().ConfigureAwait(false);
         }

@@ -1,12 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
+using Aspire.Dashboard;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Dashboard.Authentication;
+namespace Turbine.Dashboard.Authentication;
 
 public class UnsecuredAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -16,7 +19,7 @@ public class UnsecuredAuthenticationHandler : AuthenticationHandler<Authenticati
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var id = new ClaimsIdentity(
+        ClaimsIdentity? id = new ClaimsIdentity(
             [new Claim(ClaimTypes.NameIdentifier, "Local"), new Claim(FrontendAuthorizationDefaults.UnsecuredClaimName, bool.TrueString)],
             FrontendAuthenticationDefaults.AuthenticationSchemeUnsecured);
 

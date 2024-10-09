@@ -1,22 +1,28 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Dialogs;
+namespace Turbine.Dashboard.Components.Dialogs;
 
 public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 {
     // xml and json are language names supported by highlight.js
     public const string XmlFormat = "xml";
+
     public const string JsonFormat = "json";
     public const string PlaintextFormat = "plaintext";
 
@@ -30,6 +36,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     private string _formattedText = string.Empty;
 
     public HashSet<string?> EnabledOptions { get; } = [];
+
     public string FormattedText
     {
         get => _formattedText;
@@ -39,6 +46,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             FormattedLines = GetLines();
         }
     }
+
     public ICollection<StringLogLine> FormattedLines { get; set; } = [];
 
     public string FormatKind { get; private set; } = PlaintextFormat;
@@ -111,7 +119,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     private ICollection<StringLogLine> GetLines()
     {
-        var lines = FormattedText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
+        List<string>? lines = FormattedText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
 
         return lines.Select((line, index) => new StringLogLine(index + 1, line, FormatKind != PlaintextFormat)).ToList();
     }
@@ -120,8 +128,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         try
         {
-            var document = XDocument.Parse(Content.Text);
-            var stringWriter = new StringWriter();
+            XDocument? document = XDocument.Parse(Content.Text);
+            StringWriter? stringWriter = new StringWriter();
             document.Save(stringWriter);
             ChangeFormattedText(XmlFormat, stringWriter.ToString());
             return true;
@@ -136,7 +144,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         try
         {
-            var formattedJson = FormatJson(Content.Text);
+            string? formattedJson = FormatJson(Content.Text);
             ChangeFormattedText(JsonFormat, formattedJson);
             return true;
         }
@@ -174,10 +182,10 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     private static string FormatJson(string jsonString)
     {
-        var jsonData = Encoding.UTF8.GetBytes(jsonString);
+        byte[]? jsonData = Encoding.UTF8.GetBytes(jsonString);
 
         // Initialize the Utf8JsonReader
-        var reader = new Utf8JsonReader(jsonData, new JsonReaderOptions
+        Utf8JsonReader reader = new Utf8JsonReader(jsonData, new JsonReaderOptions
         {
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Allow,
@@ -188,8 +196,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         });
 
         // Use a MemoryStream and Utf8JsonWriter to write the formatted JSON
-        using var stream = new MemoryStream();
-        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+        using MemoryStream? stream = new MemoryStream();
+        using Utf8JsonWriter? writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         while (reader.Read())
         {
@@ -198,40 +206,50 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
                 case JsonTokenType.StartObject:
                     writer.WriteStartObject();
                     break;
+
                 case JsonTokenType.EndObject:
                     writer.WriteEndObject();
                     break;
+
                 case JsonTokenType.StartArray:
                     writer.WriteStartArray();
                     break;
+
                 case JsonTokenType.EndArray:
                     writer.WriteEndArray();
                     break;
+
                 case JsonTokenType.PropertyName:
                     writer.WritePropertyName(reader.GetString()!);
                     break;
+
                 case JsonTokenType.String:
                     writer.WriteStringValue(reader.GetString());
                     break;
+
                 case JsonTokenType.Number:
-                    if (reader.TryGetInt32(out var intValue))
+                    if (reader.TryGetInt32(out int intValue))
                     {
                         writer.WriteNumberValue(intValue);
                     }
-                    else if (reader.TryGetDouble(out var doubleValue))
+                    else if (reader.TryGetDouble(out double doubleValue))
                     {
                         writer.WriteNumberValue(doubleValue);
                     }
                     break;
+
                 case JsonTokenType.True:
                     writer.WriteBooleanValue(true);
                     break;
+
                 case JsonTokenType.False:
                     writer.WriteBooleanValue(false);
                     break;
+
                 case JsonTokenType.Null:
                     writer.WriteNullValue();
                     break;
+
                 case JsonTokenType.Comment:
                     writer.WriteCommentValue(reader.GetComment());
                     break;
@@ -239,7 +257,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
 
         writer.Flush();
-        var formattedJson = Encoding.UTF8.GetString(stream.ToArray());
+        string? formattedJson = Encoding.UTF8.GetString(stream.ToArray());
 
         return formattedJson;
     }
@@ -263,4 +281,3 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
 }
-

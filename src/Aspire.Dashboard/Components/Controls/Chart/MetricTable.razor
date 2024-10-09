@@ -1,11 +1,11 @@
-﻿@namespace Aspire.Dashboard.Components.Controls
+﻿@namespace Turbine.Dashboard.Components.Controls
 
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Utils
 @using System.Globalization
-@using Aspire.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Components.Controls.Grid
 
-@inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
+@inherits Turbine.Dashboard.Components.Controls.Chart.ChartBase
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 @{
@@ -21,7 +21,7 @@
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; width:1200px;">
     @* ItemKey is to preserve row focus by associating rows with their associated time *@
     <FluentDataGrid
-        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+        ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
         ResizeType="DataGridResizeType.Discrete"
         Items="@_metricsView"
         ItemSize="46"
@@ -37,7 +37,7 @@
             {
                 foreach (var (percentile, underlineColor) in percentileColumns)
                 {
-                    <AspireTemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument, titleCase: true, pluralize: true)}" : $"P{percentile}"))">
+                    <TurbineTemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument, titleCase: true, pluralize: true)}" : $"P{percentile}"))">
                         @if (context is HistogramMetricView histogramMetric)
                         {
                             var percentileData = histogramMetric.Percentiles[percentile];
@@ -51,13 +51,13 @@
                                 <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
                             }
                         }
-                    </AspireTemplateColumn>
+                    </TurbineTemplateColumn>
                 }
             }
             else if (_metrics.Values.All(value => value is MetricValueView))
             {
                 <!-- if we're switching between grid types, this could be false -->
-                <AspireTemplateColumn Title="@_unitColumnHeader">
+                <TurbineTemplateColumn Title="@_unitColumnHeader">
                     @{
                         var metricValueView = context as MetricValueView;
                     }
@@ -78,11 +78,11 @@
                             <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
                         }
                     }
-                </AspireTemplateColumn>
+                </TurbineTemplateColumn>
             }
             @if (_exemplars.Count > 0)
             {
-                <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableExemplarsColumnHeader)]">
+                <TurbineTemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableExemplarsColumnHeader)]">
                     @if (context.Exemplars.Count > 0)
                     {
                         @* min-width ensures a consistent button width up to 999 metrics *@
@@ -95,7 +95,7 @@
                     {
                         <span>0</span>
                     }
-                </AspireTemplateColumn>
+                </TurbineTemplateColumn>
             }
         </ChildContent>
         <EmptyContent>

@@ -1,12 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Turbine.Dashboard.ConsoleLogs;
+
 public static partial class UrlParser
 {
     private static readonly Regex s_urlRegEx = GenerateUrlRegEx();
@@ -15,11 +16,11 @@ public static partial class UrlParser
     {
         if (text is not null)
         {
-            var urlMatch = s_urlRegEx.Match(text);
+            Match? urlMatch = s_urlRegEx.Match(text);
 
-            var builder = new StringBuilder(text.Length * 2);
+            StringBuilder? builder = new StringBuilder(text.Length * 2);
 
-            var nextCharIndex = 0;
+            int nextCharIndex = 0;
             while (urlMatch.Success)
             {
                 if (urlMatch.Index > 0)
@@ -27,9 +28,9 @@ public static partial class UrlParser
                     builder.Append(text[(nextCharIndex)..urlMatch.Index]);
                 }
 
-                var urlStart = urlMatch.Index;
+                int urlStart = urlMatch.Index;
                 nextCharIndex = urlMatch.Index + urlMatch.Length;
-                var url = text[urlStart..nextCharIndex];
+                string? url = text[urlStart..nextCharIndex];
 
                 builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{url}</a>");
                 urlMatch = urlMatch.NextMatch();

@@ -1,11 +1,11 @@
 ﻿@page "/structuredlogs"
 @page "/structuredlogs/resource/{applicationName}"
 
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Utils
-@using Aspire.Dashboard.Resources
+@using Turbine.Dashboard.Otlp.Model
+@using Turbine.Dashboard.Utils
+@using Turbine.Dashboard.Resources
 @using System.Globalization
-@using Aspire.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Components.Controls.Grid
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -16,7 +16,7 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout @ref="@_contentLayout"
+    <TurbinePageContentLayout @ref="@_contentLayout"
                              AddNewlineOnToolbar="true"
                              ShouldShowFooter="@(SelectedLogEntry is null)"
                              IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">
@@ -103,7 +103,7 @@
                 <Summary>
                     <div class="logs-summary-layout">
                         <div class="logs-grid-container continuous-scroll-overflow">
-                            <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                            <FluentDataGrid ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                             ResizeType="DataGridResizeType.Discrete"
                                             Virtualize="true"
                                             RowClass="@GetRowClass"
@@ -117,36 +117,36 @@
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
                                             Class="enable-row-click">
                                 <ChildContent>
-                                    <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
+                                    <TurbineTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
                                         <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
                                             @GetResourceName(context.Application)
                                         </span>
-                                    </AspireTemplateColumn>
-                                    <AspireTemplateColumn ColumnId="@LogLevelColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
+                                    </TurbineTemplateColumn>
+                                    <TurbineTemplateColumn ColumnId="@LogLevelColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
                                         <LogLevelColumnDisplay LogEntry="@context" />
-                                    </AspireTemplateColumn>
-                                    <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                                    </TurbineTemplateColumn>
+                                    <TurbineTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                                         @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
-                                    </AspireTemplateColumn>
-                                    <AspireTemplateColumn ColumnId="@MessageColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
+                                    </TurbineTemplateColumn>
+                                    <TurbineTemplateColumn ColumnId="@MessageColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
                                         <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
-                                    </AspireTemplateColumn>
-                                    <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
+                                    </TurbineTemplateColumn>
+                                    <TurbineTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                         @if (!string.IsNullOrEmpty(context.TraceId))
                                         {
                                             <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
                                                 @OtlpHelpers.ToShortenedId(context.TraceId)
                                             </a>
                                         }
-                                    </AspireTemplateColumn>
-                                    <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                                    </TurbineTemplateColumn>
+                                    <TurbineTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                                         @{
                                             var id = $"details-button-{context.InternalId}";
                                         }
                                         <div @onclick:stopPropagation="true">
                                             <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                                         </div>
-                                    </AspireTemplateColumn>
+                                    </TurbineTemplateColumn>
                                 </ChildContent>
                                 <EmptyContent>
                                     <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsNoLogsFound)]
@@ -164,5 +164,5 @@
         <FooterSection>
             <TotalItemsFooter @ref="_totalItemsFooter" />
         </FooterSection>
-    </AspirePageContentLayout>
+    </TurbinePageContentLayout>
 </div>

@@ -1,16 +1,18 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Security.Claims;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Resources;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class UserProfile : ComponentBase
 {
@@ -41,9 +43,9 @@ public partial class UserProfile : ComponentBase
     {
         if (DashboardOptions.CurrentValue.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
         {
-            var authState = await AuthenticationState;
+            AuthenticationState? authState = await AuthenticationState;
 
-            var claimsIdentity = authState.User.Identity as ClaimsIdentity;
+            ClaimsIdentity? claimsIdentity = authState.User.Identity as ClaimsIdentity;
 
             if (claimsIdentity?.IsAuthenticated == true)
             {

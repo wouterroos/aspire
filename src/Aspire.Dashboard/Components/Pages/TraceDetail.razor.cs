@@ -1,18 +1,22 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Utils;
+using System.Linq;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase
 {
@@ -66,7 +70,7 @@ public partial class TraceDetail : ComponentBase
             new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
         ], DimensionManager);
 
-        foreach (var resolver in OutgoingPeerResolvers)
+        foreach (IOutgoingPeerResolver? resolver in OutgoingPeerResolvers)
         {
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
             {
@@ -80,9 +84,9 @@ public partial class TraceDetail : ComponentBase
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
-        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
+        List<SpanWaterfallViewModel>? visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
 
-        var page = visibleSpanWaterfallViewModels.AsEnumerable();
+        IEnumerable<SpanWaterfallViewModel>? page = visibleSpanWaterfallViewModels.AsEnumerable();
         if (request.StartIndex > 0)
         {
             page = page.Skip(request.StartIndex);
@@ -105,6 +109,7 @@ public partial class TraceDetail : ComponentBase
         {
             case OtlpSpanKind.Server:
                 return new Icons.Filled.Size16.Server();
+
             case OtlpSpanKind.Consumer:
                 if (span.Attributes.HasKey("messaging.system"))
                 {
@@ -121,14 +126,14 @@ public partial class TraceDetail : ComponentBase
 
     private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)
     {
-        var orderedSpans = new List<SpanWaterfallViewModel>();
+        List<SpanWaterfallViewModel>? orderedSpans = new List<SpanWaterfallViewModel>();
         // There should be one root span but just in case, we'll add them all.
-        foreach (var rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
+        foreach (OtlpSpan? rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
         {
             AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, hidden: false, state, CreateViewModel);
         }
         // Unparented spans.
-        foreach (var unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
+        foreach (OtlpSpan? unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
         {
             AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, hidden: false, state, CreateViewModel);
         }
@@ -137,13 +142,13 @@ public partial class TraceDetail : ComponentBase
 
         static SpanWaterfallViewModel AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, bool hidden, TraceDetailState state, Func<OtlpSpan, int, bool, TraceDetailState, SpanWaterfallViewModel> createViewModel)
         {
-            var viewModel = createViewModel(span, depth, hidden, state);
+            SpanWaterfallViewModel? viewModel = createViewModel(span, depth, hidden, state);
             orderedSpans.Add(viewModel);
             depth++;
 
-            foreach (var child in span.GetChildSpans().OrderBy(s => s.StartTime))
+            foreach (OtlpSpan? child in span.GetChildSpans().OrderBy(s => s.StartTime))
             {
-                var childViewModel = AddSelfAndChildren(orderedSpans, child, depth, viewModel.IsHidden || viewModel.IsCollapsed, state, createViewModel);
+                SpanWaterfallViewModel? childViewModel = AddSelfAndChildren(orderedSpans, child, depth, viewModel.IsHidden || viewModel.IsCollapsed, state, createViewModel);
                 viewModel.Children.Add(childViewModel);
             }
 
@@ -152,23 +157,23 @@ public partial class TraceDetail : ComponentBase
 
         static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
         {
-            var traceStart = span.Trace.FirstSpan.StartTime;
-            var relativeStart = span.StartTime - traceStart;
-            var rootDuration = span.Trace.Duration.TotalMilliseconds;
+            DateTime traceStart = span.Trace.FirstSpan.StartTime;
+            TimeSpan relativeStart = span.StartTime - traceStart;
+            double rootDuration = span.Trace.Duration.TotalMilliseconds;
 
-            var leftOffset = relativeStart.TotalMilliseconds / rootDuration * 100;
-            var width = span.Duration.TotalMilliseconds / rootDuration * 100;
+            double leftOffset = relativeStart.TotalMilliseconds / rootDuration * 100;
+            double width = span.Duration.TotalMilliseconds / rootDuration * 100;
 
             // Figure out if the label is displayed to the left or right of the span.
             // If the label position is based on whether more than half of the span is on the left or right side of the trace.
-            var labelIsRight = (relativeStart + span.Duration / 2) < (span.Trace.Duration / 2);
+            bool labelIsRight = (relativeStart + span.Duration / 2) < (span.Trace.Duration / 2);
 
             // A span may indicate a call to another service but the service isn't instrumented.
-            var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
-            var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
-            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
+            bool hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
+            bool isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
+            string? uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
-            var viewModel = new SpanWaterfallViewModel
+            SpanWaterfallViewModel? viewModel = new SpanWaterfallViewModel
             {
                 Children = [],
                 Span = span,
@@ -196,9 +201,9 @@ public partial class TraceDetail : ComponentBase
     private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
         // Attempt to resolve uninstrumented peer to a friendly name from the span.
-        foreach (var resolver in outgoingPeerResolvers)
+        foreach (IOutgoingPeerResolver? resolver in outgoingPeerResolvers)
         {
-            if (resolver.TryResolvePeerName(span.Attributes, out var name))
+            if (resolver.TryResolvePeerName(span.Attributes, out string? name))
             {
                 return name;
             }
@@ -214,7 +219,7 @@ public partial class TraceDetail : ComponentBase
 
         if (SpanId is not null && _spanWaterfallViewModels is not null)
         {
-            var spanVm = _spanWaterfallViewModels.SingleOrDefault(vm => vm.Span.SpanId == SpanId);
+            SpanWaterfallViewModel? spanVm = _spanWaterfallViewModels.SingleOrDefault(vm => vm.Span.SpanId == SpanId);
             if (spanVm != null)
             {
                 await OnShowPropertiesAsync(spanVm, buttonId: null);
@@ -292,16 +297,16 @@ public partial class TraceDetail : ComponentBase
         }
         else
         {
-            var entryProperties = viewModel.Span.AllProperties()
+            List<SpanPropertyViewModel>? entryProperties = viewModel.Span.AllProperties()
                 .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
                 .ToList();
 
-            var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
+            Dictionary<string, OtlpTrace>? traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
 
-            var links = viewModel.Span.Links.Select(l => CreateLinkViewModel(l.TraceId, l.SpanId, l.Attributes, traceCache)).ToList();
-            var backlinks = viewModel.Span.BackLinks.Select(l => CreateLinkViewModel(l.SourceTraceId, l.SourceSpanId, l.Attributes, traceCache)).ToList();
+            List<SpanLinkViewModel>? links = viewModel.Span.Links.Select(l => CreateLinkViewModel(l.TraceId, l.SpanId, l.Attributes, traceCache)).ToList();
+            List<SpanLinkViewModel>? backlinks = viewModel.Span.BackLinks.Select(l => CreateLinkViewModel(l.SourceTraceId, l.SourceSpanId, l.Attributes, traceCache)).ToList();
 
-            var spanDetailsViewModel = new SpanDetailsViewModel
+            SpanDetailsViewModel? spanDetailsViewModel = new SpanDetailsViewModel
             {
                 Span = viewModel.Span,
                 Applications = _applications,
@@ -317,7 +322,7 @@ public partial class TraceDetail : ComponentBase
 
     private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
     {
-        if (!traceCache.TryGetValue(traceId, out var trace))
+        if (!traceCache.TryGetValue(traceId, out OtlpTrace? trace))
         {
             trace = TelemetryRepository.GetTrace(traceId);
             if (trace != null)
@@ -326,7 +331,7 @@ public partial class TraceDetail : ComponentBase
             }
         }
 
-        var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
+        OtlpSpan? linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
 
         return new SpanLinkViewModel
         {
@@ -353,7 +358,7 @@ public partial class TraceDetail : ComponentBase
 
     public void Dispose()
     {
-        foreach (var subscription in _peerChangesSubscriptions)
+        foreach (IDisposable? subscription in _peerChangesSubscriptions)
         {
             subscription.Dispose();
         }

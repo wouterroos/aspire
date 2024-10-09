@@ -1,20 +1,25 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Utils;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Model.MetricValues;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 
-namespace Aspire.Dashboard.Components.Controls.Chart;
+namespace Turbine.Dashboard.Components.Controls.Chart;
 
 public abstract class ChartBase : ComponentBase, IAsyncDisposable
 {
@@ -58,6 +63,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     // Stores a cache of the last set of spans returned as exemplars.
     // This dictionary is replaced each time the chart is updated.
     private Dictionary<SpanKey, OtlpSpan> _currentCache = new Dictionary<SpanKey, OtlpSpan>();
+
     private Dictionary<SpanKey, OtlpSpan> _newCache = new Dictionary<SpanKey, OtlpSpan>();
 
     private readonly record struct SpanKey(string TraceId, string SpanId);
@@ -80,14 +86,14 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var inProgressDataTime = GetCurrentDataTime();
+        DateTimeOffset inProgressDataTime = GetCurrentDataTime();
 
         while (_currentDataStartTime.Add(_tickDuration) < inProgressDataTime)
         {
             _currentDataStartTime = _currentDataStartTime.Add(_tickDuration);
         }
 
-        var dimensionAttributes = InstrumentViewModel.MatchedDimensions.Select(d => d.Attributes).ToList();
+        List<KeyValuePair<string, string>[]>? dimensionAttributes = InstrumentViewModel.MatchedDimensions.Select(d => d.Attributes).ToList();
         if (_renderedInstrument is null || _renderedInstrument != InstrumentViewModel.Instrument.GetKey() ||
             _renderedDimensionAttributes is null || !_renderedDimensionAttributes.SequenceEqual(dimensionAttributes) ||
             _renderedTheme != InstrumentViewModel.Theme ||
@@ -120,25 +126,25 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
     private (List<ChartTrace> Y, List<DateTimeOffset> X, List<ChartExemplar> Exemplars) CalculateHistogramValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTimeOffset inProgressDataTime, string yLabel)
     {
-        var pointDuration = Duration / pointCount;
-        var traces = new Dictionary<int, ChartTrace>
+        TimeSpan pointDuration = Duration / pointCount;
+        Dictionary<int, ChartTrace>? traces = new Dictionary<int, ChartTrace>
         {
             [50] = new() { Name = $"P50 {yLabel}", Percentile = 50 },
             [90] = new() { Name = $"P90 {yLabel}", Percentile = 90 },
             [99] = new() { Name = $"P99 {yLabel}", Percentile = 99 }
         };
-        var xValues = new List<DateTimeOffset>();
-        var exemplars = new List<ChartExemplar>();
-        var startDate = _currentDataStartTime;
+        List<DateTimeOffset>? xValues = new List<DateTimeOffset>();
+        List<ChartExemplar>? exemplars = new List<ChartExemplar>();
+        DateTimeOffset startDate = _currentDataStartTime;
         DateTimeOffset? firstPointEndTime = null;
         DateTimeOffset? lastPointStartTime = null;
 
         // Generate the points in reverse order so that the chart is drawn from right to left.
         // Add a couple of extra points to the end so that the chart is drawn all the way to the right edge.
-        for (var pointIndex = 0; pointIndex < (pointCount + 2); pointIndex++)
+        for (int pointIndex = 0; pointIndex < (pointCount + 2); pointIndex++)
         {
-            var start = CalcOffset(pointIndex, startDate, pointDuration);
-            var end = CalcOffset(pointIndex - 1, startDate, pointDuration);
+            DateTimeOffset start = CalcOffset(pointIndex, startDate, pointDuration);
+            DateTimeOffset end = CalcOffset(pointIndex - 1, startDate, pointDuration);
             firstPointEndTime ??= end;
             lastPointStartTime = start;
 
@@ -146,14 +152,14 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
             if (!TryCalculateHistogramPoints(dimensions, start, end, traces, exemplars))
             {
-                foreach (var trace in traces)
+                foreach (KeyValuePair<int, ChartTrace> trace in traces)
                 {
                     trace.Value.Values.Add(null);
                 }
             }
         }
 
-        foreach (var item in traces)
+        foreach (KeyValuePair<int, ChartTrace> item in traces)
         {
             item.Value.Values.Reverse();
         }
@@ -165,11 +171,11 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         }
 
         ChartTrace? previousValues = null;
-        foreach (var trace in traces.OrderBy(kvp => kvp.Key))
+        foreach (KeyValuePair<int, ChartTrace> trace in traces.OrderBy(kvp => kvp.Key))
         {
-            var currentTrace = trace.Value;
+            ChartTrace? currentTrace = trace.Value;
 
-            for (var i = 0; i < currentTrace.Values.Count; i++)
+            for (int i = 0; i < currentTrace.Values.Count; i++)
             {
                 double? diffValue = (previousValues != null)
                     ? currentTrace.Values[i] - previousValues.Values[i] ?? 0
@@ -212,7 +218,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
     internal bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTimeOffset start, DateTimeOffset end, Dictionary<int, ChartTrace> traces, List<ChartExemplar> exemplars)
     {
-        var hasValue = false;
+        bool hasValue = false;
 
         ulong[]? currentBucketCounts = null;
         double[]? explicitBounds = null;
@@ -220,15 +226,15 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         start = start.Subtract(TimeSpan.FromSeconds(1));
         end = end.Add(TimeSpan.FromSeconds(1));
 
-        foreach (var dimension in dimensions)
+        foreach (DimensionScope? dimension in dimensions)
         {
-            var dimensionValues = dimension.Values;
-            for (var i = dimensionValues.Count - 1; i >= 0; i--)
+            IList<MetricValueBase>? dimensionValues = dimension.Values;
+            for (int i = dimensionValues.Count - 1; i >= 0; i--)
             {
-                var metric = dimensionValues[i];
+                MetricValueBase? metric = dimensionValues[i];
                 if (metric.Start >= start && metric.Start <= end)
                 {
-                    var histogramValue = GetHistogramValue(metric);
+                    HistogramValue? histogramValue = GetHistogramValue(metric);
 
                     AddExemplars(exemplars, metric);
 
@@ -241,7 +247,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
                     explicitBounds ??= histogramValue.ExplicitBounds;
 
-                    var previousHistogramValues = i > 0 ? GetHistogramValue(dimensionValues[i - 1]).Values : null;
+                    ulong[]? previousHistogramValues = i > 0 ? GetHistogramValue(dimensionValues[i - 1]).Values : null;
 
                     if (currentBucketCounts is null)
                     {
@@ -252,9 +258,9 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
                         throw new InvalidOperationException("Histogram values changed size");
                     }
 
-                    for (var valuesIndex = 0; valuesIndex < histogramValue.Values.Length; valuesIndex++)
+                    for (int valuesIndex = 0; valuesIndex < histogramValue.Values.Length; valuesIndex++)
                     {
-                        var newValue = histogramValue.Values[valuesIndex];
+                        ulong newValue = histogramValue.Values[valuesIndex];
 
                         if (previousHistogramValues != null)
                         {
@@ -271,9 +277,9 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         }
         if (hasValue)
         {
-            foreach (var percentileValues in traces)
+            foreach (KeyValuePair<int, ChartTrace> percentileValues in traces)
             {
-                var percentileValue = CalculatePercentile(percentileValues.Key, currentBucketCounts!, explicitBounds!);
+                double? percentileValue = CalculatePercentile(percentileValues.Key, currentBucketCounts!, explicitBounds!);
                 percentileValues.Value.Values.Add(percentileValue);
             }
         }
@@ -284,13 +290,13 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     {
         if (metric.HasExemplars)
         {
-            foreach (var exemplar in metric.Exemplars)
+            foreach (MetricsExemplar? exemplar in metric.Exemplars)
             {
                 // TODO: Exemplars are duplicated on metrics in some scenarios.
                 // This is a quick fix to ensure a distinct collection of metrics are displayed in the UI.
                 // Investigation is needed into why there are duplicates.
-                var exists = false;
-                foreach (var existingExemplar in exemplars)
+                bool exists = false;
+                foreach (ChartExemplar? existingExemplar in exemplars)
                 {
                     if (exemplar.Start == existingExemplar.Start &&
                         exemplar.Value == existingExemplar.Value &&
@@ -308,8 +314,8 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
                 // Try to find span the the local cache first.
                 // This is done to avoid scanning a potentially large trace collection in repository.
-                var key = new SpanKey(exemplar.TraceId, exemplar.SpanId);
-                if (!_currentCache.TryGetValue(key, out var span))
+                SpanKey key = new SpanKey(exemplar.TraceId, exemplar.SpanId);
+                if (!_currentCache.TryGetValue(key, out OtlpSpan? span))
                 {
                     span = TelemetryRepository.GetSpan(exemplar.TraceId, exemplar.SpanId);
                 }
@@ -318,7 +324,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
                     _newCache[key] = span;
                 }
 
-                var exemplarStart = TimeProvider.ToLocalDateTimeOffset(exemplar.Start);
+                DateTimeOffset exemplarStart = TimeProvider.ToLocalDateTimeOffset(exemplar.Start);
                 exemplars.Add(new ChartExemplar
                 {
                     Start = exemplarStart,
@@ -334,7 +340,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     private static ulong CountBuckets(HistogramValue histogramValue)
     {
         ulong value = 0ul;
-        for (var i = 0; i < histogramValue.Values.Length; i++)
+        for (int i = 0; i < histogramValue.Values.Length; i++)
         {
             value += histogramValue.Values[i];
         }
@@ -348,16 +354,16 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
             throw new ArgumentOutOfRangeException(nameof(percentile), percentile, "Percentile must be between 0 and 100.");
         }
 
-        var totalCount = 0ul;
-        foreach (var count in counts)
+        ulong totalCount = 0ul;
+        foreach (ulong count in counts)
         {
             totalCount += count;
         }
 
-        var targetCount = (percentile / 100.0) * totalCount;
-        var accumulatedCount = 0ul;
+        double targetCount = (percentile / 100.0) * totalCount;
+        ulong accumulatedCount = 0ul;
 
-        for (var i = 0; i < explicitBounds.Length; i++)
+        for (int i = 0; i < explicitBounds.Length; i++)
         {
             accumulatedCount += counts[i];
 
@@ -373,24 +379,24 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
     private (List<ChartTrace> Y, List<DateTimeOffset> X, List<ChartExemplar> Exemplars) CalculateChartValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTimeOffset inProgressDataTime, string yLabel)
     {
-        var pointDuration = Duration / pointCount;
-        var yValues = new List<double?>();
-        var xValues = new List<DateTimeOffset>();
-        var exemplars = new List<ChartExemplar>();
-        var startDate = _currentDataStartTime;
+        TimeSpan pointDuration = Duration / pointCount;
+        List<double?>? yValues = new List<double?>();
+        List<DateTimeOffset>? xValues = new List<DateTimeOffset>();
+        List<ChartExemplar>? exemplars = new List<ChartExemplar>();
+        DateTimeOffset startDate = _currentDataStartTime;
         DateTimeOffset? firstPointEndTime = null;
 
         // Generate the points in reverse order so that the chart is drawn from right to left.
         // Add a couple of extra points to the end so that the chart is drawn all the way to the right edge.
-        for (var pointIndex = 0; pointIndex < (pointCount + 2); pointIndex++)
+        for (int pointIndex = 0; pointIndex < (pointCount + 2); pointIndex++)
         {
-            var start = CalcOffset(pointIndex, startDate, pointDuration);
-            var end = CalcOffset(pointIndex - 1, startDate, pointDuration);
+            DateTimeOffset start = CalcOffset(pointIndex, startDate, pointDuration);
+            DateTimeOffset end = CalcOffset(pointIndex - 1, startDate, pointDuration);
             firstPointEndTime ??= end;
 
             xValues.Add(TimeProvider.ToLocalDateTimeOffset(end));
 
-            if (TryCalculatePoint(dimensions, start, end, exemplars, out var tickPointValue))
+            if (TryCalculatePoint(dimensions, start, end, exemplars, out double tickPointValue))
             {
                 yValues.Add(tickPointValue);
             }
@@ -403,18 +409,18 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         yValues.Reverse();
         xValues.Reverse();
 
-        if (tickUpdate && TryCalculatePoint(dimensions, firstPointEndTime!.Value, inProgressDataTime, exemplars, out var inProgressPointValue))
+        if (tickUpdate && TryCalculatePoint(dimensions, firstPointEndTime!.Value, inProgressDataTime, exemplars, out double inProgressPointValue))
         {
             yValues.Add(inProgressPointValue);
             xValues.Add(TimeProvider.ToLocalDateTimeOffset(inProgressDataTime));
         }
 
-        var trace = new ChartTrace
+        ChartTrace? trace = new ChartTrace
         {
             Name = HttpUtility.HtmlEncode(yLabel)
         };
 
-        for (var i = 0; i < xValues.Count; i++)
+        for (int i = 0; i < xValues.Count; i++)
         {
             trace.Values.AddRange(yValues);
             trace.DiffValues.AddRange(yValues);
@@ -433,19 +439,19 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
     private bool TryCalculatePoint(List<DimensionScope> dimensions, DateTimeOffset start, DateTimeOffset end, List<ChartExemplar> exemplars, out double pointValue)
     {
-        var hasValue = false;
+        bool hasValue = false;
         pointValue = 0d;
 
-        foreach (var dimension in dimensions)
+        foreach (DimensionScope? dimension in dimensions)
         {
-            var dimensionValues = dimension.Values;
-            var dimensionValue = 0d;
-            for (var i = dimensionValues.Count - 1; i >= 0; i--)
+            IList<MetricValueBase>? dimensionValues = dimension.Values;
+            double dimensionValue = 0d;
+            for (int i = dimensionValues.Count - 1; i >= 0; i--)
             {
-                var metric = dimensionValues[i];
+                MetricValueBase? metric = dimensionValues[i];
                 if ((metric.Start <= end && metric.End >= start) || (metric.Start >= start && metric.End <= end))
                 {
-                    var value = metric switch
+                    double value = metric switch
                     {
                         MetricValue<long> longMetric => longMetric.Value,
                         MetricValue<double> doubleMetric => doubleMetric.Value,
@@ -487,7 +493,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
         Debug.Assert(InstrumentViewModel.Instrument != null);
 
-        var unit = !InstrumentViewModel.ShowCount
+        string? unit = !InstrumentViewModel.ShowCount
             ? GetDisplayedUnit(InstrumentViewModel.Instrument)
             : CountUnit;
 

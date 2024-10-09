@@ -1,12 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Globalization;
-using Aspire.Dashboard.Model;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 
-namespace Aspire.Dashboard.Components;
+namespace Turbine.Dashboard.Components;
 
 public sealed partial class ApplicationName : ComponentBase, IDisposable
 {

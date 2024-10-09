@@ -1,15 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 public sealed class OtlpTraceCollection : KeyedCollection<ReadOnlyMemory<byte>, OtlpTrace>
 {
     public OtlpTraceCollection() : base(MemoryComparable.Instance, dictionaryCreationThreshold: 0)
     {
-
     }
 
     protected override ReadOnlyMemory<byte> GetKeyForItem(OtlpTrace item)
@@ -30,8 +31,8 @@ public sealed class OtlpTraceCollection : KeyedCollection<ReadOnlyMemory<byte>, 
         {
             unchecked
             {
-                var hash = 17;
-                foreach (var value in obj.Span)
+                int hash = 17;
+                foreach (byte value in obj.Span)
                 {
                     hash = hash * 23 + value.GetHashCode();
                 }

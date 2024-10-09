@@ -41,7 +41,7 @@
         color: var(--neutral-foreground-rest);
     }
 
-    ::deep.layout > .aspire-icon {
+    ::deep.layout > .Turbine-icon {
         grid-area: icon;
         display: flex;
         align-items: center;
@@ -79,7 +79,7 @@
     ::deep.layout > header > .header-gutters > fluent-button[appearance=stealth]:not(:hover)::part(control),
     ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth]:not(:hover)::part(control),
     ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth].logo::part(control),
-    ::deep.layout > .aspire-icon fluent-anchor[appearance=stealth].logo::part(control) {
+    ::deep.layout > .Turbine-icon fluent-anchor[appearance=stealth].logo::part(control) {
         background-color: var(--neutral-layer-4);
     }
 
@@ -92,14 +92,14 @@
         font-size: var(--type-ramp-plus-2-font-size);
     }
 
-    ::deep .aspire-icon fluent-anchor.logo::part(control) {
+    ::deep .Turbine-icon fluent-anchor.logo::part(control) {
         padding: 0;
         border: none;
     }
 
-    ::deep .aspire-icon fluent-anchor.logo,
-    ::deep .aspire-icon fluent-anchor.logo::part(control),
-    ::deep .aspire-icon fluent-anchor.logo::part(content) {
+    ::deep .Turbine-icon fluent-anchor.logo,
+    ::deep .Turbine-icon fluent-anchor.logo::part(control),
+    ::deep .Turbine-icon fluent-anchor.logo::part(content) {
         height: 24px;
         width: 24px;
     }
@@ -153,7 +153,7 @@
         color: var(--neutral-foreground-rest);
     }
 
-    ::deep.layout > .aspire-icon {
+    ::deep.layout > .Turbine-icon {
         grid-area: icon;
         display: flex;
         align-items: center;
@@ -191,20 +191,20 @@
     ::deep.layout > header > .header-gutters > fluent-button[appearance=stealth]:not(:hover)::part(control),
     ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth]:not(:hover)::part(control),
     ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth].logo::part(control),
-    ::deep.layout > .aspire-icon fluent-anchor[appearance=stealth].logo::part(control) {
+    ::deep.layout > .Turbine-icon fluent-anchor[appearance=stealth].logo::part(control) {
         background-color: var(--neutral-layer-4);
     }
 
-    ::deep.layout > .aspire-icon {
+    ::deep.layout > .Turbine-icon {
         padding-left: 15px;
         background-color: var(--neutral-layer-4);
     }
 
-    ::deep.layout > .aspire-icon fluent-anchor {
+    ::deep.layout > .Turbine-icon fluent-anchor {
         margin-left: 5px;
     }
 
-    ::deep.layout > .aspire-icon .navigation-button {
+    ::deep.layout > .Turbine-icon .navigation-button {
         border: 1px solid #a8aeb3;
     }
 
@@ -217,14 +217,14 @@
         font-size: var(--type-ramp-plus-2-font-size);
     }
 
-    ::deep .aspire-icon fluent-anchor.logo::part(control) {
+    ::deep .Turbine-icon fluent-anchor.logo::part(control) {
         padding: 0;
         border: none;
     }
 
-    ::deep .aspire-icon fluent-anchor.logo,
-    ::deep .aspire-icon fluent-anchor.logo::part(control),
-    ::deep .aspire-icon fluent-anchor.logo::part(content) {
+    ::deep .Turbine-icon fluent-anchor.logo,
+    ::deep .Turbine-icon fluent-anchor.logo::part(control),
+    ::deep .Turbine-icon fluent-anchor.logo::part(content) {
         height: 24px;
         width: 24px;
     }

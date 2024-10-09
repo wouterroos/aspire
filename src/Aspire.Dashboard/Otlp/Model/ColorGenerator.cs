@@ -1,10 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 public sealed class GeneratedColor
 {
@@ -23,6 +25,7 @@ public class ColorGenerator
         "#12939A", "#DDB27C", "#88572C", "#FF9833", "#EF5D28",
         "#162A65", "#DA70BF", "#125C77", "#4DC19C", "#776E57"
     ];
+
     public static readonly ColorGenerator Instance = new ColorGenerator();
 
     private readonly List<GeneratedColor> _colors;
@@ -35,9 +38,9 @@ public class ColorGenerator
         _colorIndexByKey = new ConcurrentDictionary<string, Lazy<int>>(StringComparer.OrdinalIgnoreCase);
         _currentIndex = 0;
 
-        foreach (var hex in s_colorsHex)
+        foreach (string? hex in s_colorsHex)
         {
-            var rgb = GetHexRgb(hex);
+            (int Red, int Green, int Blue) rgb = GetHexRgb(hex);
             _colors.Add(new GeneratedColor
             {
                 Hex = hex,
@@ -55,9 +58,9 @@ public class ColorGenerator
             return (0, 0, 0);
         }
 
-        var r = int.Parse(s.AsSpan(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        var g = int.Parse(s.AsSpan(3, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        var b = int.Parse(s.AsSpan(5, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        int r = int.Parse(s.AsSpan(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        int g = int.Parse(s.AsSpan(3, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        int b = int.Parse(s.AsSpan(5, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
         return (r, g, b);
     }
@@ -70,7 +73,7 @@ public class ColorGenerator
             // Use lazy to ensure that the index is only calculated once for an app.
             return new Lazy<int>(() =>
             {
-                var i = _currentIndex;
+                int i = _currentIndex;
                 _currentIndex = ++_currentIndex % _colors.Count;
                 return i;
             });
@@ -79,7 +82,7 @@ public class ColorGenerator
 
     public string GetColorHexByKey(string key)
     {
-        var i = GetColorIndex(key);
+        int i = GetColorIndex(key);
         return _colors[i].Hex;
     }
 

@@ -1,10 +1,10 @@
 ﻿@page "/"
-@using Aspire.Dashboard.Components.ResourcesGridColumns
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+@using Turbine.Dashboard.Components.ResourcesGridColumns
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Utils
 @using System.Globalization
-@using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Model
+@using Turbine.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Model
 @using Humanizer
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -17,7 +17,7 @@
 }
 
 <div class="page-content-container">
-    <AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView">
+    <TurbinePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
         </PageTitleSection>
@@ -76,7 +76,7 @@
                     @{
                         var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
                     }
-                    <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                    <FluentDataGrid ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                     ResizeType="DataGridResizeType.Discrete"
                                     Virtualize="true"
                                     GenerateHeader="GenerateHeaderOption.Sticky"
@@ -91,32 +91,32 @@
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d, buttonId: null)))"
                                     Class="enable-row-click">
                         <ChildContent>
-                            <AspirePropertyColumn ColumnId="@TypeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
-                            <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
+                            <TurbinePropertyColumn ColumnId="@TypeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
+                            <TurbineTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
                                 <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">
                                 <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
                                 <StartTimeColumnDisplay Resource="@context" />
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@SourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@SourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
                                 @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
                                 {
                                     <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
                                 }
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@EndpointsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
                                 <EndpointsColumnDisplay Resource="context"
                                                         HasMultipleReplicas="HasMultipleReplicas(context)"
                                                         DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
                                                         AdditionalMessage="@additionalMessage" />
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@LogsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@LogsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
                                 <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)" @onclick:stopPropagation="true">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
                                 @{
                                     var id = $"details-button-{context.Uid}";
                                 }
@@ -126,13 +126,13 @@
                                                   Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
                                                   OnClick="@(() => ShowResourceDetailsAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                                 </div>
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@CommandsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@CommandsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
                                 <div @onclick:stopPropagation="true">
                                     <ResourceCommands Commands="@context.Commands"
                                                       CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
                                 </div>
-                            </AspireTemplateColumn>
+                            </TurbineTemplateColumn>
                         </ChildContent>
                         <EmptyContent>
                             <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]
@@ -144,5 +144,5 @@
                 </Details>
             </SummaryDetailsView>
         </MainSection>
-    </AspirePageContentLayout>
+    </TurbinePageContentLayout>
 </div>

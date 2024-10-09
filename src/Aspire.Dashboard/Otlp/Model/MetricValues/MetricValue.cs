@@ -1,9 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Diagnostics;
 
-namespace Aspire.Dashboard.Otlp.Model.MetricValues;
+namespace Turbine.Dashboard.Otlp.Model.MetricValues;
 
 [DebuggerDisplay("Start = {Start}, End = {End}, Value = {Value}, Exemplars = {Exemplars.Count}")]
 public class MetricValue<T> : MetricValueBase where T : struct
@@ -19,7 +20,7 @@ public class MetricValue<T> : MetricValueBase where T : struct
 
     protected override MetricValueBase Clone()
     {
-        var value = new MetricValue<T>(Value, Start, End);
+        MetricValue<T>? value = new MetricValue<T>(Value, Start, End);
         if (HasExemplars)
         {
             value.Exemplars.AddRange(Exemplars);

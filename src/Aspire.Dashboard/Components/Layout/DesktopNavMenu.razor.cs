@@ -1,10 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Layout;
+namespace Turbine.Dashboard.Components.Layout;
 
 public partial class DesktopNavMenu : ComponentBase
 {

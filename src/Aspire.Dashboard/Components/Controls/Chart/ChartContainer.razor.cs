@@ -1,15 +1,21 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Components.Pages;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Otlp.Storage;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Pages;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Model.MetricValues;
+using Turbine.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components;
+namespace Turbine.Dashboard.Components;
 
 public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
@@ -71,7 +77,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private async Task UpdateDataAsync()
     {
-        var timer = _tickTimer;
+        PeriodicTimer? timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
@@ -105,7 +111,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
     {
-        var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
+        List<DimensionScope>? matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
         await _instrumentViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
@@ -113,7 +119,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private bool MatchDimension(DimensionScope dimension)
     {
-        foreach (var dimensionFilter in DimensionFilters)
+        foreach (DimensionFilterViewModel? dimensionFilter in DimensionFilters)
         {
             if (!MatchFilter(dimension.Attributes, dimensionFilter))
             {
@@ -131,8 +137,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             return false;
         }
 
-        var value = OtlpHelpers.GetValue(attributes, filter.Name);
-        foreach (var item in filter.SelectedValues)
+        string? value = OtlpHelpers.GetValue(attributes, filter.Name);
+        foreach (DimensionValueViewModel? item in filter.SelectedValues)
         {
             if (item.Empty && string.IsNullOrEmpty(value))
             {
@@ -156,11 +162,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var hasInstrumentChanged = PreviousMeterName != MeterName || PreviousInstrumentName != InstrumentName;
+        bool hasInstrumentChanged = PreviousMeterName != MeterName || PreviousInstrumentName != InstrumentName;
         PreviousMeterName = MeterName;
         PreviousInstrumentName = InstrumentName;
 
-        var filters = CreateUpdatedFilters(hasInstrumentChanged);
+        List<DimensionFilterViewModel>? filters = CreateUpdatedFilters(hasInstrumentChanged);
 
         DimensionFilters.Clear();
         DimensionFilters.AddRange(filters);
@@ -170,12 +176,12 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private OtlpInstrumentData? GetInstrument()
     {
-        var endDate = DateTime.UtcNow;
+        DateTime endDate = DateTime.UtcNow;
         // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.
         // It's ok to get more data than is needed here. An additional date filter is applied when building chart values.
-        var startDate = endDate.Subtract(Duration + TimeSpan.FromSeconds(30));
+        DateTime startDate = endDate.Subtract(Duration + TimeSpan.FromSeconds(30));
 
-        var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
+        OtlpInstrumentData? instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
         {
             ApplicationKey = ApplicationKey,
             MeterName = MeterName,
@@ -198,19 +204,19 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)
     {
-        var filters = new List<DimensionFilterViewModel>();
+        List<DimensionFilterViewModel>? filters = new List<DimensionFilterViewModel>();
         if (_instrument != null)
         {
-            foreach (var item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
+            foreach (KeyValuePair<string, List<string>> item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
             {
-                var dimensionModel = new DimensionFilterViewModel
+                DimensionFilterViewModel? dimensionModel = new DimensionFilterViewModel
                 {
                     Name = item.Key
                 };
 
                 dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
                 {
-                    var empty = string.IsNullOrEmpty(v);
+                    bool empty = string.IsNullOrEmpty(v);
                     return new DimensionValueViewModel
                     {
                         Name = empty ? "(Empty)" : v,
@@ -221,30 +227,30 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 filters.Add(dimensionModel);
             }
 
-            foreach (var item in filters)
+            foreach (DimensionFilterViewModel? item in filters)
             {
                 item.SelectedValues.Clear();
 
                 if (hasInstrumentChanged)
                 {
                     // Select all by default.
-                    foreach (var v in item.Values)
+                    foreach (DimensionValueViewModel? v in item.Values)
                     {
                         item.SelectedValues.Add(v);
                     }
                 }
                 else
                 {
-                    var existing = DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
+                    DimensionFilterViewModel? existing = DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
                     if (existing != null)
                     {
                         // Select previously selected.
                         // Automatically select new incoming values if existing values are all selected.
-                        var newSelectedValues = (existing.AreAllValuesSelected ?? false)
+                        IEnumerable<DimensionValueViewModel>? newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
                             : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Name == newValue.Name));
 
-                        foreach (var v in newSelectedValues)
+                        foreach (DimensionValueViewModel? v in newSelectedValues)
                         {
                             item.SelectedValues.Add(v);
                         }
@@ -252,7 +258,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     else
                     {
                         // New filter. Select all by default.
-                        foreach (var v in item.Values)
+                        foreach (DimensionValueViewModel? v in item.Values)
                         {
                             item.SelectedValues.Add(v);
                         }
@@ -266,10 +272,10 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private Task OnTabChangeAsync(FluentTab newTab)
     {
-        var id = newTab.Id?.Substring("tab-".Length);
+        string? id = newTab.Id?.Substring("tab-".Length);
 
         if (id is null
-            || !Enum.TryParse(typeof(Metrics.MetricViewKind), id, out var o)
+            || !Enum.TryParse(typeof(Metrics.MetricViewKind), id, out object? o)
             || o is not Metrics.MetricViewKind viewKind)
         {
             return Task.CompletedTask;

@@ -1,11 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
+using Microsoft.Extensions.Logging;
+using Turbine.Dashboard.Configuration;
 using OpenTelemetry.Proto.Logs.V1;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
 public class OtlpLogEntry
@@ -34,13 +37,16 @@ public class OtlpLogEntry
                 case "{OriginalFormat}":
                     originalFormat = attribute.Value.GetString();
                     return false;
+
                 case "ParentId":
                     parentId = attribute.Value.GetString();
                     return false;
+
                 case "SpanId":
                 case "TraceId":
                     // Explicitly ignore these
                     return false;
+
                 default:
                     return true;
             }

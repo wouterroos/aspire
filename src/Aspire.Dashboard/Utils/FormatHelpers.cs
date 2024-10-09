@@ -1,13 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Model;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Model;
 
-namespace Aspire.Dashboard.Utils;
+namespace Turbine.Dashboard.Utils;
 
 public enum MillisecondsDisplay
 {
@@ -32,11 +33,11 @@ internal static partial class FormatHelpers
 
     private static MillisecondFormatStrings GetMillisecondFormatStrings(CultureInfo cultureInfo)
     {
-        var key = new CultureDetailsKey(cultureInfo.DateTimeFormat.LongTimePattern, cultureInfo.DateTimeFormat.ShortDatePattern, cultureInfo.NumberFormat.NumberDecimalSeparator);
+        CultureDetailsKey key = new CultureDetailsKey(cultureInfo.DateTimeFormat.LongTimePattern, cultureInfo.DateTimeFormat.ShortDatePattern, cultureInfo.NumberFormat.NumberDecimalSeparator);
 
         return s_formatStrings.GetOrAdd(key, static k =>
         {
-            var (truncated, full) = GetLongTimePatternWithMillisecondsCore(k);
+            (string? truncated, string? full) = GetLongTimePatternWithMillisecondsCore(k);
             return new MillisecondFormatStrings(
                 new MillisecondFormatString(truncated, full),
                 new MillisecondFormatString(
@@ -50,7 +51,7 @@ internal static partial class FormatHelpers
 
             // Create a format similar to .fff but based on the current culture.
             // Intentionally use fff here instead of FFF so output has a consistent length.
-            var truncatedMillisecondFormat = "fff";
+            string? truncatedMillisecondFormat = "fff";
 
             // Append millisecond pattern to current culture's long time pattern.
             return (
@@ -61,7 +62,7 @@ internal static partial class FormatHelpers
         static string FormatPattern(CultureDetailsKey key, string millisecondFormat)
         {
             // Gets the long time pattern, which is something like "h:mm:ss tt" (en-US), "H:mm:ss" (ja-JP), "HH:mm:ss" (fr-FR).
-            var longTimePattern = key.LongTimePattern;
+            string? longTimePattern = key.LongTimePattern;
 
             return MatchSecondsInTimeFormatPattern().Replace(longTimePattern, $"$1'{key.NumberDecimalSeparator}'{millisecondFormat}");
         }
@@ -74,7 +75,7 @@ internal static partial class FormatHelpers
     public static string FormatTime(BrowserTimeProvider timeProvider, DateTime value, MillisecondsDisplay millisecondsDisplay = MillisecondsDisplay.None, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
-        var local = timeProvider.ToLocal(value);
+        DateTime local = timeProvider.ToLocal(value);
 
         // Long time
         return millisecondsDisplay switch
@@ -89,7 +90,7 @@ internal static partial class FormatHelpers
     public static string FormatDateTime(BrowserTimeProvider timeProvider, DateTime value, MillisecondsDisplay millisecondsDisplay = MillisecondsDisplay.None, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
-        var local = timeProvider.ToLocal(value);
+        DateTime local = timeProvider.ToLocal(value);
 
         // Short date, long time
         return millisecondsDisplay switch
@@ -103,7 +104,7 @@ internal static partial class FormatHelpers
 
     public static string FormatTimeWithOptionalDate(BrowserTimeProvider timeProvider, DateTime value, MillisecondsDisplay millisecondsDisplay = MillisecondsDisplay.None, CultureInfo? cultureInfo = null)
     {
-        var local = timeProvider.ToLocal(value);
+        DateTime local = timeProvider.ToLocal(value);
 
         // If the date is today then only return time, otherwise return entire date time text.
         if (local.Date == DateTime.Now.Date)
@@ -121,7 +122,7 @@ internal static partial class FormatHelpers
 
     public static string FormatNumberWithOptionalDecimalPlaces(double value, int maxDecimalPlaces, CultureInfo? provider = null)
     {
-        var formatString = maxDecimalPlaces switch
+        string? formatString = maxDecimalPlaces switch
         {
             1 => "##,0.#",
             2 => "##,0.##",

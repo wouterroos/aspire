@@ -1,7 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-namespace Aspire.Dashboard.Authentication.Connection;
+using System.Collections.Generic;
+
+namespace Turbine.Dashboard.Authentication.Connection;
 
 /// <summary>
 /// This feature's presence on a connection indicates that the connection is for OTLP.

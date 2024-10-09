@@ -1,10 +1,10 @@
-﻿@namespace Aspire.Dashboard.Components
-@using Aspire.Dashboard.Model
+﻿@namespace Turbine.Dashboard.Components
+@using Turbine.Dashboard.Model
 
-<AspireMenuButton TItem="CommandViewModel"
+<TurbineMenuButton TItem="CommandViewModel"
     ButtonAppearance="Appearance.Lightweight"
     Icon="@(new Icons.Regular.Size24.MoreHorizontal())"
     Items="@Commands"
     ItemText="c => c.DisplayName"
     OnItemClicked="CommandSelected">
-</AspireMenuButton>
+</TurbineMenuButton>

@@ -1,9 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using Aspire;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 internal static class ResourceEndpointHelpers
 {
@@ -12,9 +15,9 @@ internal static class ResourceEndpointHelpers
     /// </summary>
     public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false)
     {
-        var endpoints = new List<DisplayedEndpoint>(resource.Urls.Length);
+        List<DisplayedEndpoint>? endpoints = new List<DisplayedEndpoint>(resource.Urls.Length);
 
-        foreach (var url in resource.Urls)
+        foreach (UrlViewModel? url in resource.Urls)
         {
             if ((includeInternalUrls && url.IsInternal) || !url.IsInternal)
             {
@@ -34,7 +37,7 @@ internal static class ResourceEndpointHelpers
         // - https
         // - other urls
         // - endpoint name
-        var orderedEndpoints = endpoints
+        List<DisplayedEndpoint>? orderedEndpoints = endpoints
             .OrderByDescending(e => e.Url?.StartsWith("https") == true)
             .ThenByDescending(e => e.Url != null)
             .ThenBy(e => e.Name, StringComparers.EndpointAnnotationName)

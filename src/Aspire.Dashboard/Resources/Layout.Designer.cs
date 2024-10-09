@@ -7,7 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Aspire.Dashboard.Resources {
+namespace Turbine.Dashboard.Resources {
     using System;
     
     
@@ -28,7 +28,7 @@ namespace Aspire.Dashboard.Resources {
         public static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Dashboard.Resources.Layout", typeof(Layout).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Turbine.Dashboard.Resources.Layout", typeof(Layout).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -45,15 +45,15 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string MainLayoutAspireRepoLink {
+        public static string MainLayoutTurbineRepoLink {
             get {
-                return ResourceManager.GetString("MainLayoutAspireRepoLink", resourceCulture);
+                return ResourceManager.GetString("MainLayoutTurbineRepoLink", resourceCulture);
             }
         }
         
-        public static string MainLayoutAspireDashboardHelpLink {
+        public static string MainLayoutTurbineDashboardHelpLink {
             get {
-                return ResourceManager.GetString("MainLayoutAspireDashboardHelpLink", resourceCulture);
+                return ResourceManager.GetString("MainLayoutTurbineDashboardHelpLink", resourceCulture);
             }
         }
         
@@ -123,9 +123,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string MainLayoutAspire {
+        public static string MainLayoutTurbine {
             get {
-                return ResourceManager.GetString("MainLayoutAspire", resourceCulture);
+                return ResourceManager.GetString("MainLayoutTurbine", resourceCulture);
             }
         }
         

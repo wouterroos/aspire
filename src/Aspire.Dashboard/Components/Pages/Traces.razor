@@ -1,11 +1,11 @@
 ﻿@page "/traces"
 @page "/traces/resource/{applicationName}"
 
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+@using Turbine.Dashboard.Otlp.Model
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Utils
 @using System.Globalization
-@using Aspire.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Components.Controls.Grid
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -14,7 +14,7 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout AddNewlineOnToolbar="true" @ref="@_contentLayout">
+    <TurbinePageContentLayout AddNewlineOnToolbar="true" @ref="@_contentLayout">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
         </PageTitleSection>
@@ -33,7 +33,7 @@
         </ToolbarSection>
         <MainSection>
             <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                <FluentDataGrid ResizeLabel="@TurbineFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                 ResizeType="DataGridResizeType.Discrete"
                                 Virtualize="true"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
@@ -46,16 +46,16 @@
                                 OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                 Class="enable-row-click">
                     <ChildContent>
-                        <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                        <TurbineTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                             @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
-                        </AspireTemplateColumn>
-                        <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
+                        </TurbineTemplateColumn>
+                        <TurbineTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
                             <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName((context.RootSpan ?? context.FirstSpan).Source)));">
                                 <FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" />
                             </span>
                             <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
-                        </AspireTemplateColumn>
-                        <AspireTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
+                        </TurbineTemplateColumn>
+                        <TurbineTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                             <FluentOverflow>
                                 <ChildContent>
                                     @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
@@ -90,8 +90,8 @@
                                     </FluentTooltip>
                                 </OverflowTemplate>
                             </FluentOverflow>
-                        </AspireTemplateColumn>
-                        <AspireTemplateColumn ColumnId="@DurationColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
+                        </TurbineTemplateColumn>
+                        <TurbineTemplateColumn ColumnId="@DurationColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
                             <div class="duration-container">
                                 @if (ViewportInformation.IsDesktop)
                                 {
@@ -109,10 +109,10 @@
                                     @DurationFormatter.FormatDuration(context.Duration)
                                 }
                             </div>
-                        </AspireTemplateColumn>
-                        <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                        </TurbineTemplateColumn>
+                        <TurbineTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                             <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)" @onclick:stopPropagation="true">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
-                        </AspireTemplateColumn>
+                        </TurbineTemplateColumn>
                     </ChildContent>
                     <EmptyContent>
                         <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;@Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]
@@ -123,5 +123,5 @@
         <FooterSection>
             <TotalItemsFooter @ref="_totalItemsFooter" />
         </FooterSection>
-    </AspirePageContentLayout>
+    </TurbinePageContentLayout>
 </div>

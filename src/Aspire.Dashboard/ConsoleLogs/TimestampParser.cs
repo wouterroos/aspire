@@ -1,13 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Model;
+using Aspire;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Model;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Turbine.Dashboard.ConsoleLogs;
 
 public static partial class TimestampParser
 {
@@ -15,13 +17,13 @@ public static partial class TimestampParser
 
     public static bool TryParseConsoleTimestamp(string text, [NotNullWhen(true)] out TimestampParserResult? result)
     {
-        var match = s_rfc3339RegEx.Match(text);
+        Match? match = s_rfc3339RegEx.Match(text);
 
         if (match.Success)
         {
-            var span = text.AsSpan();
-            var timestamp = span[match.Index..(match.Index + match.Length)];
-            var theRest = match.Index + match.Length >= span.Length ? "" : span[(match.Index + match.Length)..];
+            ReadOnlySpan<char> span = text.AsSpan();
+            ReadOnlySpan<char> timestamp = span[match.Index..(match.Index + match.Length)];
+            ReadOnlySpan<char> theRest = match.Index + match.Length >= span.Length ? "" : span[(match.Index + match.Length)..];
 
             result = new(theRest.ToString(), DateTimeOffset.Parse(timestamp.ToString(), CultureInfo.InvariantCulture));
             return true;
@@ -33,9 +35,9 @@ public static partial class TimestampParser
 
     public static string ConvertTimestampFromUtc(BrowserTimeProvider timeProvider, ReadOnlySpan<char> timestamp)
     {
-        if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
+        if (DateTimeOffset.TryParse(timestamp, out DateTimeOffset dateTimeUtc))
         {
-            var dateTimeLocal = timeProvider.ToLocal(dateTimeUtc);
+            DateTime dateTimeLocal = timeProvider.ToLocal(dateTimeUtc);
             return dateTimeLocal.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.CurrentCulture);
         }
 

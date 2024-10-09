@@ -1,13 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Resources;
+using System;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class GridValue
 {

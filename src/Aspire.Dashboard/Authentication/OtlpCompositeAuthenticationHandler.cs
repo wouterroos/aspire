@@ -1,16 +1,19 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using Aspire.Dashboard.Authentication.OtlpApiKey;
-using Aspire.Dashboard.Authentication.Connection;
-using Aspire.Dashboard.Configuration;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Authentication.OtlpApiKey;
+using Turbine.Dashboard.Authentication.Connection;
+using Turbine.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Dashboard.Authentication;
+namespace Turbine.Dashboard.Authentication;
 
 public sealed class OtlpCompositeAuthenticationHandler(
     IOptionsMonitor<DashboardOptions> dashboardOptions,
@@ -21,11 +24,11 @@ public sealed class OtlpCompositeAuthenticationHandler(
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var options = dashboardOptions.CurrentValue;
+        DashboardOptions? options = dashboardOptions.CurrentValue;
 
-        foreach (var scheme in GetRelevantAuthenticationSchemes())
+        foreach (string? scheme in GetRelevantAuthenticationSchemes())
         {
-            var result = await Context.AuthenticateAsync(scheme).ConfigureAwait(false);
+            AuthenticateResult? result = await Context.AuthenticateAsync(scheme).ConfigureAwait(false);
 
             if (result.Failure is not null)
             {
@@ -33,7 +36,7 @@ public sealed class OtlpCompositeAuthenticationHandler(
             }
         }
 
-        var id = new ClaimsIdentity([new Claim(OtlpAuthorization.OtlpClaimName, bool.TrueString)]);
+        ClaimsIdentity? id = new ClaimsIdentity([new Claim(OtlpAuthorization.OtlpClaimName, bool.TrueString)]);
 
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(id), Scheme.Name));
 

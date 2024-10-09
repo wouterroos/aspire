@@ -1,20 +1,23 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Resource.V1;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 public static class OtlpHelpers
 {
@@ -30,9 +33,9 @@ public static class OtlpHelpers
         string? serviceInstanceId = null;
         string? processExecutableName = null;
 
-        for (var i = 0; i < resource.Attributes.Count; i++)
+        for (int i = 0; i < resource.Attributes.Count; i++)
         {
-            var attribute = resource.Attributes[i];
+            KeyValue? attribute = resource.Attributes[i];
             if (attribute.Key == OtlpApplication.SERVICE_INSTANCE_ID)
             {
                 serviceInstanceId = attribute.Value.GetString();
@@ -75,8 +78,8 @@ public static class OtlpHelpers
         // because we want to display lowercase hex string in the UI for values such as traceid and spanid.
         return string.Create(bytes.Length * 2, bytes, static (chars, bytes) =>
         {
-            var data = bytes.Span;
-            for (var pos = 0; pos < data.Length; pos++)
+            ReadOnlySpan<byte> data = bytes.Span;
+            for (int pos = 0; pos < data.Length; pos++)
             {
                 ToCharsBuffer(data[pos], chars, pos * 2);
             }
@@ -126,8 +129,8 @@ public static class OtlpHelpers
 
         static JsonArray ConvertArray(ArrayValue value)
         {
-            var a = new JsonArray();
-            foreach (var item in value.Values)
+            JsonArray? a = new JsonArray();
+            foreach (AnyValue? item in value.Values)
             {
                 a.Add(ConvertAnyValue(item));
             }
@@ -136,8 +139,8 @@ public static class OtlpHelpers
 
         static JsonObject ConvertKeyValues(KeyValueList value)
         {
-            var o = new JsonObject();
-            foreach (var item in value.Values)
+            JsonObject? o = new JsonObject();
+            foreach (KeyValue? item in value.Values)
             {
                 o[item.Key] = ConvertAnyValue(item.Value);
             }
@@ -150,8 +153,8 @@ public static class OtlpHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ToCharsBuffer(byte value, Span<char> buffer, int startingIndex = 0)
     {
-        var difference = ((value & 0xF0U) << 4) + (value & 0x0FU) - 0x8989U;
-        var packedResult = (((uint)-(int)difference & 0x7070U) >> 4) + difference + 0xB9B9U | 0x2020U;
+        uint difference = ((value & 0xF0U) << 4) + (value & 0x0FU) - 0x8989U;
+        uint packedResult = (((uint)-(int)difference & 0x7070U) >> 4) + difference + 0xB9B9U | 0x2020U;
 
         buffer[startingIndex + 1] = (char)(packedResult & 0xFF);
         buffer[startingIndex] = (char)(packedResult >> 8);
@@ -159,7 +162,7 @@ public static class OtlpHelpers
 
     public static DateTime UnixNanoSecondsToDateTime(ulong unixTimeNanoseconds)
     {
-        var ticks = NanosecondsToTicks(unixTimeNanoseconds);
+        long ticks = NanosecondsToTicks(unixTimeNanoseconds);
 
         return DateTime.UnixEpoch.AddTicks(ticks);
     }
@@ -176,7 +179,7 @@ public static class OtlpHelpers
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.MaxAttributeCount)];
+        KeyValuePair<string, string>[]? values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.MaxAttributeCount)];
         CopyKeyValues(attributes, values, index: 0, options);
 
         return values;
@@ -189,18 +192,18 @@ public static class OtlpHelpers
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var readLimit = Math.Min(attributes.Count, options.MaxAttributeCount);
-        var values = new List<KeyValuePair<string, string>>(readLimit);
-        for (var i = 0; i < attributes.Count; i++)
+        int readLimit = Math.Min(attributes.Count, options.MaxAttributeCount);
+        List<KeyValuePair<string, string>>? values = new List<KeyValuePair<string, string>>(readLimit);
+        for (int i = 0; i < attributes.Count; i++)
         {
-            var attribute = attributes[i];
+            KeyValue? attribute = attributes[i];
 
             if (!filter(attribute))
             {
                 continue;
             }
 
-            var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
+            string? value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
             values.Add(new KeyValuePair<string, string>(attribute.Key, value));
 
@@ -233,13 +236,13 @@ public static class OtlpHelpers
 
     private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, int index, TelemetryLimitOptions options)
     {
-        var copyCount = Math.Min(attributes.Count + index, options.MaxAttributeCount);
+        int copyCount = Math.Min(attributes.Count + index, options.MaxAttributeCount);
 
-        for (var i = 0; i < copyCount - index; i++)
+        for (int i = 0; i < copyCount - index; i++)
         {
-            var attribute = attributes[i];
+            KeyValue? attribute = attributes[i];
 
-            var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
+            string? value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
             copiedAttributes[i + index] = new KeyValuePair<string, string>(attribute.Key, value);
         }
@@ -247,7 +250,7 @@ public static class OtlpHelpers
 
     public static string? GetValue(this KeyValuePair<string, string>[] values, string name)
     {
-        for (var i = 0; i < values.Length; i++)
+        for (int i = 0; i < values.Length; i++)
         {
             if (values[i].Key == name)
             {
@@ -259,7 +262,7 @@ public static class OtlpHelpers
 
     public static string? GetPeerAddress(this KeyValuePair<string, string>[] values)
     {
-        var address = GetValue(values, OtlpSpan.PeerServiceAttributeKey);
+        string? address = GetValue(values, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
         {
             return address;
@@ -290,7 +293,7 @@ public static class OtlpHelpers
 
     public static bool HasKey(this KeyValuePair<string, string>[] values, string name)
     {
-        for (var i = 0; i < values.Length; i++)
+        for (int i = 0; i < values.Length; i++)
         {
             if (values[i].Key == name)
             {
@@ -303,8 +306,8 @@ public static class OtlpHelpers
     public static string ConcatProperties(this KeyValuePair<string, string>[] properties)
     {
         StringBuilder sb = new();
-        var first = true;
-        foreach (var kv in properties)
+        bool first = true;
+        foreach (KeyValuePair<string, string> kv in properties)
         {
             if (!first)
             {
@@ -324,7 +327,7 @@ public static class OtlpHelpers
 
     public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int? count, Func<TSource, TResult>? select)
     {
-        var query = results.Skip(startIndex);
+        IEnumerable<TSource>? query = results.Skip(startIndex);
         if (count != null)
         {
             query = query.Take(count.Value);
@@ -338,7 +341,7 @@ public static class OtlpHelpers
         {
             items = query.Cast<TResult>().ToList();
         }
-        var totalItemCount = results.Count();
+        int totalItemCount = results.Count();
 
         return new PagedResult<TResult>
         {

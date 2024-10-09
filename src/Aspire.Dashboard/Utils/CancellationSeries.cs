@@ -1,7 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-namespace Aspire.Dashboard.Utils;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Turbine.Dashboard.Utils;
 
 /// <summary>
 /// Produces a series of <see cref="CancellationToken"/>s that are used to coordinate
@@ -30,12 +33,12 @@ internal sealed class CancellationSeries
     /// <returns>A cancellation token that manages the lifetime of a non-overlapping operation in a concurrent environment.</returns>
     public async Task<CancellationToken> NextAsync()
     {
-        var nextCts = new CancellationTokenSource();
+        CancellationTokenSource nextCts = new CancellationTokenSource();
 
         // Obtain the token before exchange, as otherwise the CTS may be cancelled before
         // we request the Token, which will result in an ObjectDisposedException.
         // This way we would return a cancelled token, which is reasonable.
-        var nextToken = nextCts.Token;
+        CancellationToken nextToken = nextCts.Token;
 
         await Next(nextCts).ConfigureAwait(false);
 
@@ -57,7 +60,7 @@ internal sealed class CancellationSeries
 
     private async Task Next(CancellationTokenSource? next)
     {
-        using var priorCts = Interlocked.Exchange(ref _cts, next);
+        using CancellationTokenSource? priorCts = Interlocked.Exchange(ref _cts, next);
 
         if (priorCts is not null)
         {

@@ -1,18 +1,19 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Aspire.Dashboard.Extensions;
+namespace Turbine.Dashboard.Extensions;
 
 internal static class StringExtensions
 {
     public static string SanitizeHtmlId(this string input)
     {
-        var sanitizedBuilder = new StringBuilder(capacity: input.Length);
+        StringBuilder? sanitizedBuilder = new StringBuilder(capacity: input.Length);
 
-        foreach (var c in input)
+        foreach (char c in input)
         {
             if (IsValidHtmlIdCharacter(c))
             {
@@ -41,14 +42,14 @@ internal static class StringExtensions
     [return: NotNullIfNotNull(nameof(defaultValue))]
     public static string? GetInitials(this string name, string? defaultValue = default)
     {
-        var s = name.AsSpan().Trim();
+        ReadOnlySpan<char> s = name.AsSpan().Trim();
 
         if (s.Length == 0)
         {
             return defaultValue;
         }
 
-        var lastSpaceIndex = s.LastIndexOf(' ');
+        int lastSpaceIndex = s.LastIndexOf(' ');
 
         if (lastSpaceIndex == -1)
         {

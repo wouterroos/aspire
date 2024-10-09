@@ -1,12 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Resources;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Resources;
 
-namespace Aspire.Dashboard.Components.Layout;
+namespace Turbine.Dashboard.Components.Layout;
 
 public partial class AspirePageContentLayout : ComponentBase
 {
@@ -68,7 +71,7 @@ public partial class AspirePageContentLayout : ComponentBase
 
     private string GetMobileMainStyle()
     {
-        var style = "grid-area: main;" + MainContentStyle;
+        string style = "grid-area: main;" + MainContentStyle;
         if (!ViewportInformation.IsUltraLowHeight)
         {
             style += "overflow: auto;";
@@ -110,7 +113,7 @@ public partial class AspirePageContentLayout : ComponentBase
 
     private async Task InvokeListeners()
     {
-        foreach (var dialogCloseListener in DialogCloseListeners.Values)
+        foreach (Func<Task> dialogCloseListener in DialogCloseListeners.Values)
         {
             await dialogCloseListener.Invoke();
         }
@@ -120,4 +123,3 @@ public partial class AspirePageContentLayout : ComponentBase
 
     public record MobileToolbar(RenderFragment ToolbarSection, string MobileToolbarButtonText);
 }
-

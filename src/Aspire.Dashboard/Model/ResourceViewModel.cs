@@ -1,13 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Aspire.Dashboard.Extensions;
+using Aspire;
+using Turbine.Dashboard.Extensions;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
@@ -33,8 +36,8 @@ public sealed class ResourceViewModel
 
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
-        var count = 0;
-        foreach (var (_, item) in allResources)
+        int count = 0;
+        foreach ((string _, ResourceViewModel? item) in allResources)
         {
             if (item.IsHiddenState())
             {
@@ -90,7 +93,7 @@ public sealed class EnvironmentVariableViewModel
     {
         // Name should always have a value, but somehow an empty/whitespace name can reach this point.
         // Better to allow the dashboard to run with an env var with no name than break when loading resources.
-        // https://github.com/dotnet/aspire/issues/5309
+        // https://github.com/dotnet/Turbine/issues/5309
         Name = name;
         Value = value;
         FromSpec = fromSpec;

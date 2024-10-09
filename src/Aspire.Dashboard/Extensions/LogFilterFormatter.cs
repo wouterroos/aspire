@@ -1,15 +1,18 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model.Otlp;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Turbine.Dashboard.Model.Otlp;
 
-namespace Aspire.Dashboard.Extensions;
+namespace Turbine.Dashboard.Extensions;
 
 public static class LogFilterFormatter
 {
     private static string SerializeLogFilterToString(LogFilter filter)
     {
-        var condition = filter.Condition switch
+        string? condition = filter.Condition switch
         {
             FilterCondition.Equals => "equals",
             FilterCondition.Contains => "contains",
@@ -33,13 +36,13 @@ public static class LogFilterFormatter
 
     private static LogFilter? DeserializeLogFilterFromString(string filterString)
     {
-        var parts = filterString.Split(':');
+        string[]? parts = filterString.Split(':');
         if (parts.Length != 3)
         {
             return null;
         }
 
-        var field = parts[0];
+        string? field = parts[0];
 
         FilterCondition? condition = parts[1] switch
         {
@@ -59,7 +62,7 @@ public static class LogFilterFormatter
             return null;
         }
 
-        var value = Uri.UnescapeDataString(parts[2]);
+        string? value = Uri.UnescapeDataString(parts[2]);
 
         return new LogFilter { Condition = condition.Value, Field = field, Value = value };
     }

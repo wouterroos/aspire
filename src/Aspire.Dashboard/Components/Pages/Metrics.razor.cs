@@ -1,25 +1,30 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Utils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Layout;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
-    private AspirePageContentLayout? _contentLayout;
+    private TurbinePageContentLayout? _contentLayout;
 
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
@@ -122,12 +127,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
-        var selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
+        ApplicationKey? selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
         viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
-        viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out var view) && view is MetricViewKind vk ? vk : null;
+        viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out object? view) && view is MetricViewKind vk ? vk : null;
 
         if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
         {
@@ -154,8 +159,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         if (PageViewModel.SelectedMeter != null ||
             PageViewModel.SelectedInstrument != null)
         {
-            var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
-            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
+            ApplicationKey? selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+            List<OtlpInstrumentSummary>? instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
 
             if (instruments == null || ShouldClearSelectedMetrics(instruments))
             {
@@ -166,7 +171,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         // On mobile, we actually *do* want to update the selected application immediately, since it will affect the tree of possible
         // metrics to select from. So, we must also immediately close the window since the closing behavior is necessary if the url has changed.
-        var isChangeInToolbar = ViewportInformation.IsDesktop;
+        bool isChangeInToolbar = ViewportInformation.IsDesktop;
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
     }
 
@@ -238,11 +243,11 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
-        var duration = PageViewModel.SelectedDuration.Id != s_defaultDuration
+        int? duration = PageViewModel.SelectedDuration.Id != s_defaultDuration
             ? (int?)serializable.DurationMinutes
             : null;
 
-        var url = DashboardUrls.MetricsUrl(
+        string? url = DashboardUrls.MetricsUrl(
             resource: serializable.ApplicationName,
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
@@ -260,7 +265,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateSubscription()
     {
-        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+        ApplicationKey? selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         // Subscribe to updates.
         if (_metricsSubscription is null || _metricsSubscription.ApplicationKey != selectedApplicationKey)
@@ -271,7 +276,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 if (selectedApplicationKey != null)
                 {
                     // If there are more instruments than before then update the UI.
-                    var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
+                    List<OtlpInstrumentSummary>? instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
 
                     if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
                     {

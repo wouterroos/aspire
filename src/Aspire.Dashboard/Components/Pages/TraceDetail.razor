@@ -1,11 +1,11 @@
 ﻿@page "/traces/detail/{traceId}"
 
-@using Aspire.Dashboard.Model.Otlp
-@using Aspire.Dashboard.Otlp.Model
+@using Turbine.Dashboard.Model.Otlp
+@using Turbine.Dashboard.Otlp.Model
 @using System.Globalization
-@using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+@using Turbine.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
@@ -14,7 +14,7 @@
 <div class="page-content-container">
     @if (_trace is { } trace)
     {
-        <AspirePageContentLayout
+        <TurbinePageContentLayout
             AddNewlineOnToolbar="true"
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
@@ -73,7 +73,7 @@
                                         GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                         ShowHover="true"
                                         OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
-                            <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]">
+                            <TurbineTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]">
                                 <div class="col-long-content" title="@context.GetTooltip(_applications)">
                                     @{
                                         var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
@@ -150,8 +150,8 @@
                                         </span>
                                     </span>
                                 </div>
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false">
                                 <HeaderCellItemTemplate>
                                     <div class="ticks">
                                         @* First column starts at 0. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from the next column *@
@@ -187,8 +187,8 @@
                                         <div class="tick" style="grid-column: 5;"></div>
                                     </div>
                                 </ChildContent>
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                            </TurbineTemplateColumn>
+                            <TurbineTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                                 @{
                                     var id = context.Span.SpanId;
                                 }
@@ -200,7 +200,7 @@
                                         Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]"
                                         Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                                 </div>
-                            </AspireTemplateColumn>
+                            </TurbineTemplateColumn>
                         </FluentDataGrid>
                     </Summary>
                     <Details>
@@ -208,7 +208,7 @@
                     </Details>
                 </SummaryDetailsView>
             </MainSection>
-        </AspirePageContentLayout>
+        </TurbinePageContentLayout>
     }
     else
     {

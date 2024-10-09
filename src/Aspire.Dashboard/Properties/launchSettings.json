@@ -1,12 +1,13 @@
 {
   "profiles": {
-    "Aspire.Dashboard": {
+    "Turbine.Dashboard": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:15877",
-        "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:15876"
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:4317",
+        "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:4318",
+        "DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS": "false"
       },
       "applicationUrl": "https://localhost:15889;http://localhost:15888"
     }

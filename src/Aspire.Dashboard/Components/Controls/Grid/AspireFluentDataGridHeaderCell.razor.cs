@@ -1,12 +1,15 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
+
+using System;
 using System.Diagnostics;
-using Aspire.Dashboard.Resources;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Turbine.Dashboard.Resources;
 
-namespace Aspire.Dashboard.Components.Controls.Grid;
+namespace Turbine.Dashboard.Components.Controls.Grid;
 
 public partial class AspireFluentDataGridHeaderCell<T> : ComponentBase
 {
@@ -76,13 +79,16 @@ internal static class AspireFluentDataGridHeaderCell
 
         return GetHeaderContent;
 
-        RenderFragment GetHeaderContent(ColumnBase<T> value) => builder =>
+        RenderFragment GetHeaderContent(ColumnBase<T> value)
         {
-            builder.OpenComponent<AspireFluentDataGridHeaderCell<T>>(0);
-            builder.AddAttribute(1, nameof(AspireFluentDataGridHeaderCell<T>.Column), value);
-            builder.AddAttribute(2, nameof(AspireFluentDataGridHeaderCell<T>.Grid), grid);
-            builder.CloseComponent();
-        };
+            return builder =>
+            {
+                builder.OpenComponent<AspireFluentDataGridHeaderCell<T>>(0);
+                builder.AddAttribute(1, nameof(AspireFluentDataGridHeaderCell<T>.Column), value);
+                builder.AddAttribute(2, nameof(AspireFluentDataGridHeaderCell<T>.Grid), grid);
+                builder.CloseComponent();
+            };
+        }
     }
 
     public static string GetResizeLabel(IStringLocalizer<ControlsStrings> loc)

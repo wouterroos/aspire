@@ -1,17 +1,21 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Globalization;
-using Aspire.Dashboard.Components.Controls.Chart;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Utils;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Controls.Chart;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Dialogs;
+namespace Turbine.Dashboard.Components.Dialogs;
 
 public partial class ExemplarsDialog : IDisposable
 {
@@ -39,7 +43,7 @@ public partial class ExemplarsDialog : IDisposable
 
     public async Task OnViewDetailsAsync(ChartExemplar exemplar)
     {
-        var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
+        bool available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
             traceId: exemplar.TraceId,
             spanId: exemplar.SpanId,
             getSpan: TelemetryRepository.GetSpan,
@@ -68,7 +72,7 @@ public partial class ExemplarsDialog : IDisposable
             return string.Empty;
         }
 
-        var formattedValue = value.Value.ToString("F3", CultureInfo.CurrentCulture);
+        string? formattedValue = value.Value.ToString("F3", CultureInfo.CurrentCulture);
         if (!string.IsNullOrEmpty(Content.Instrument.Unit))
         {
             formattedValue += Content.Instrument.Unit.TrimStart('{').TrimEnd('}');

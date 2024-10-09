@@ -1,23 +1,32 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Text;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Model.MetricValues;
+using System.Threading;
+using System.Threading.Tasks;
+using Aspire;
+using Aspire.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Model.MetricValues;
 using Google.Protobuf.Collections;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
+using Turbine.Dashboard.Model.Otlp;
 using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
-namespace Aspire.Dashboard.Otlp.Storage;
+namespace Turbine.Dashboard.Otlp.Storage;
 
 public sealed class TelemetryRepository
 {
@@ -63,9 +72,9 @@ public sealed class TelemetryRepository
     private void TracesItemRemovedForCapacity(OtlpTrace trace)
     {
         // Remove links from central collection when the span is removed.
-        foreach (var span in trace.Spans)
+        foreach (OtlpSpan? span in trace.Spans)
         {
-            foreach (var link in span.Links)
+            foreach (OtlpSpanLink? link in span.Links)
             {
                 _spanLinks.Remove(link);
             }
@@ -90,13 +99,13 @@ public sealed class TelemetryRepository
             results = results.Where(a => string.Equals(a.ApplicationKey.Name, name, StringComparisons.ResourceName));
         }
 
-        var applications = results.OrderBy(a => a.ApplicationKey).ToList();
+        List<OtlpApplication>? applications = results.OrderBy(a => a.ApplicationKey).ToList();
         return applications;
     }
 
     public OtlpApplication? GetApplicationByCompositeName(string compositeName)
     {
-        foreach (var kvp in _applications)
+        foreach (KeyValuePair<ApplicationKey, OtlpApplication> kvp in _applications)
         {
             if (kvp.Key.EqualsCompositeName(compositeName))
             {
@@ -114,7 +123,7 @@ public sealed class TelemetryRepository
             throw new InvalidOperationException($"{nameof(ApplicationKey)} must have an instance ID.");
         }
 
-        _applications.TryGetValue(key, out var application);
+        _applications.TryGetValue(key, out OtlpApplication? application);
         return application;
     }
 
@@ -158,8 +167,8 @@ public sealed class TelemetryRepository
                 }
                 return;
             }
-            var applications = GetApplications(key.Value);
-            foreach (var application in applications)
+            List<OtlpApplication>? applications = GetApplications(key.Value);
+            foreach (OtlpApplication? application in applications)
             {
                 // Mark one application logs as viewed.
                 if (_applicationUnviewedErrorLogs.Remove(application))
@@ -178,16 +187,16 @@ public sealed class TelemetryRepository
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var key = resource.GetApplicationKey();
+        ApplicationKey key = resource.GetApplicationKey();
 
         // Fast path.
-        if (_applications.TryGetValue(key, out var application))
+        if (_applications.TryGetValue(key, out OtlpApplication? application))
         {
             return application;
         }
 
         // Slower get or add path.
-        (application, var isNew) = GetOrAddApplication(key, resource);
+        (application, bool isNew) = GetOrAddApplication(key, resource);
         if (isNew)
         {
             RaiseSubscriptionChanged(_applicationSubscriptions);
@@ -198,8 +207,8 @@ public sealed class TelemetryRepository
         (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key, Resource resource)
         {
             // This GetOrAdd allocates a closure, so we avoid it if possible.
-            var newApplication = false;
-            var application = _applications.GetOrAdd(key, _ =>
+            bool newApplication = false;
+            OtlpApplication? application = _applications.GetOrAdd(key, _ =>
             {
                 newApplication = true;
                 return new OtlpApplication(key.Name, key.InstanceId!, resource, _logger, _dashboardOptions.TelemetryLimits);
@@ -251,7 +260,7 @@ public sealed class TelemetryRepository
     {
         lock (_lock)
         {
-            foreach (var subscription in subscriptions)
+            foreach (Subscription? subscription in subscriptions)
             {
                 subscription.Execute();
             }
@@ -260,7 +269,7 @@ public sealed class TelemetryRepository
 
     public void AddLogs(AddContext context, RepeatedField<ResourceLogs> resourceLogs)
     {
-        foreach (var rl in resourceLogs)
+        foreach (ResourceLogs? rl in resourceLogs)
         {
             OtlpApplication application;
             try
@@ -286,7 +295,7 @@ public sealed class TelemetryRepository
 
         try
         {
-            foreach (var sl in scopeLogs)
+            foreach (ScopeLogs? sl in scopeLogs)
             {
                 OtlpScope? scope;
                 try
@@ -294,7 +303,7 @@ public sealed class TelemetryRepository
                     // The instrumentation scope information for the spans in this message.
                     // Semantically when InstrumentationScope isn't set, it is equivalent with
                     // an empty instrumentation scope name (unknown).
-                    var name = sl.Scope?.Name ?? string.Empty;
+                    string? name = sl.Scope?.Name ?? string.Empty;
                     if (!_logScopes.TryGetValue(name, out scope))
                     {
                         scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _dashboardOptions.TelemetryLimits) : OtlpScope.Empty;
@@ -308,16 +317,16 @@ public sealed class TelemetryRepository
                     continue;
                 }
 
-                foreach (var record in sl.LogRecords)
+                foreach (LogRecord? record in sl.LogRecords)
                 {
                     try
                     {
-                        var logEntry = new OtlpLogEntry(record, application, scope, _dashboardOptions.TelemetryLimits);
+                        OtlpLogEntry? logEntry = new OtlpLogEntry(record, application, scope, _dashboardOptions.TelemetryLimits);
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
-                        var added = false;
-                        for (var i = _logs.Count - 1; i >= 0; i--)
+                        bool added = false;
+                        for (int i = _logs.Count - 1; i >= 0; i--)
                         {
                             if (logEntry.TimeStamp > _logs[i].TimeStamp)
                             {
@@ -338,7 +347,7 @@ public sealed class TelemetryRepository
                         {
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == application.ApplicationKey || s.ApplicationKey == null)))
                             {
-                                if (_applicationUnviewedErrorLogs.TryGetValue(application, out var count))
+                                if (_applicationUnviewedErrorLogs.TryGetValue(application, out int count))
                                 {
                                     _applicationUnviewedErrorLogs[application] = ++count;
                                 }
@@ -349,7 +358,7 @@ public sealed class TelemetryRepository
                             }
                         }
 
-                        foreach (var kvp in logEntry.Attributes)
+                        foreach (KeyValuePair<string, string> kvp in logEntry.Attributes)
                         {
                             _logPropertyKeys.Add((application, kvp.Key));
                         }
@@ -385,13 +394,13 @@ public sealed class TelemetryRepository
 
         try
         {
-            var results = _logs.AsEnumerable();
+            IEnumerable<OtlpLogEntry>? results = _logs.AsEnumerable();
             if (applications?.Count > 0)
             {
                 results = results.Where(l => MatchApplications(l.Application, applications));
             }
 
-            foreach (var filter in context.Filters)
+            foreach (LogFilter? filter in context.Filters)
             {
                 results = filter.Apply(results);
             }
@@ -406,7 +415,7 @@ public sealed class TelemetryRepository
 
     private static bool MatchApplications(OtlpApplication application, List<OtlpApplication> applications)
     {
-        for (var i = 0; i < applications.Count; i++)
+        for (int i = 0; i < applications.Count; i++)
         {
             if (application == applications[i])
             {
@@ -428,13 +437,13 @@ public sealed class TelemetryRepository
 
         try
         {
-            var applicationKeys = _logPropertyKeys.AsEnumerable();
+            IEnumerable<(OtlpApplication Application, string PropertyKey)>? applicationKeys = _logPropertyKeys.AsEnumerable();
             if (applications?.Count > 0)
             {
                 applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application, applications));
             }
 
-            var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
+            IEnumerable<string>? keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
             return keys.OrderBy(k => k).ToList();
         }
         finally
@@ -464,12 +473,12 @@ public sealed class TelemetryRepository
 
         try
         {
-            var results = _traces.AsEnumerable();
+            IEnumerable<OtlpTrace>? results = _traces.AsEnumerable();
             if (applications?.Count > 0)
             {
                 results = results.Where(t =>
                 {
-                    for (var i = 0; i < applications.Count; i++)
+                    for (int i = 0; i < applications.Count; i++)
                     {
                         if (HasApplication(t, applications[i].ApplicationKey))
                         {
@@ -485,10 +494,10 @@ public sealed class TelemetryRepository
             }
 
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
-            var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
+            Func<OtlpTrace, OtlpTrace>? copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
 
-            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
-            var maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
+            PagedResult<OtlpTrace>? pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
+            TimeSpan maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
 
             return new GetTracesResponse
             {
@@ -522,8 +531,8 @@ public sealed class TelemetryRepository
 
         try
         {
-            var results = _traces.Where(t => t.TraceId.StartsWith(traceId, StringComparison.Ordinal));
-            var trace = results.SingleOrDefault();
+            IEnumerable<OtlpTrace>? results = _traces.Where(t => t.TraceId.StartsWith(traceId, StringComparison.Ordinal));
+            OtlpTrace? trace = results.SingleOrDefault();
             return trace is not null ? OtlpTrace.Clone(trace) : null;
         }
         catch (Exception ex)
@@ -536,10 +545,10 @@ public sealed class TelemetryRepository
     {
         Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetSpanUnsynchronized)}.");
 
-        var trace = GetTraceUnsynchronized(traceId);
+        OtlpTrace? trace = GetTraceUnsynchronized(traceId);
         if (trace != null)
         {
-            foreach (var span in trace.Spans)
+            foreach (OtlpSpan? span in trace.Spans)
             {
                 if (span.SpanId == spanId)
                 {
@@ -567,7 +576,7 @@ public sealed class TelemetryRepository
 
     private static bool HasApplication(OtlpTrace t, ApplicationKey applicationKey)
     {
-        foreach (var span in t.Spans)
+        foreach (OtlpSpan? span in t.Spans)
         {
             if (span.Source.ApplicationKey == applicationKey)
             {
@@ -579,7 +588,7 @@ public sealed class TelemetryRepository
 
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
-        foreach (var rm in resourceMetrics)
+        foreach (ResourceMetrics? rm in resourceMetrics)
         {
             OtlpApplication application;
             try
@@ -601,7 +610,7 @@ public sealed class TelemetryRepository
 
     public void AddTraces(AddContext context, RepeatedField<ResourceSpans> resourceSpans)
     {
-        foreach (var rs in resourceSpans)
+        foreach (ResourceSpans? rs in resourceSpans)
         {
             OtlpApplication application;
             try
@@ -654,7 +663,7 @@ public sealed class TelemetryRepository
 
         try
         {
-            foreach (var scopeSpan in scopeSpans)
+            foreach (ScopeSpans? scopeSpan in scopeSpans)
             {
                 OtlpScope? scope;
                 try
@@ -662,7 +671,7 @@ public sealed class TelemetryRepository
                     // The instrumentation scope information for the spans in this message.
                     // Semantically when InstrumentationScope isn't set, it is equivalent with
                     // an empty instrumentation scope name (unknown).
-                    var name = scopeSpan.Scope?.Name ?? string.Empty;
+                    string? name = scopeSpan.Scope?.Name ?? string.Empty;
                     if (!_traceScopes.TryGetValue(name, out scope))
                     {
                         scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _dashboardOptions.TelemetryLimits) : OtlpScope.Empty;
@@ -678,7 +687,7 @@ public sealed class TelemetryRepository
 
                 OtlpTrace? lastTrace = null;
 
-                foreach (var span in scopeSpan.Spans)
+                foreach (Span? span in scopeSpan.Spans)
                 {
                     try
                     {
@@ -696,12 +705,12 @@ public sealed class TelemetryRepository
                             newTrace = true;
                         }
 
-                        var newSpan = CreateSpan(application, span, trace, scope, _dashboardOptions.TelemetryLimits);
+                        OtlpSpan? newSpan = CreateSpan(application, span, trace, scope, _dashboardOptions.TelemetryLimits);
                         trace.AddSpan(newSpan);
 
                         // The new span might be linked to by an existing span.
                         // Check current links to see if a backlink should be created.
-                        foreach (var existingLink in _spanLinks)
+                        foreach (OtlpSpanLink? existingLink in _spanLinks)
                         {
                             if (existingLink.SpanId == newSpan.SpanId && existingLink.TraceId == newSpan.TraceId)
                             {
@@ -710,11 +719,11 @@ public sealed class TelemetryRepository
                         }
 
                         // Add links to central collection. Add backlinks to existing spans.
-                        foreach (var link in newSpan.Links)
+                        foreach (OtlpSpanLink? link in newSpan.Links)
                         {
                             _spanLinks.Add(link);
 
-                            var linkedSpan = GetSpanUnsynchronized(link.TraceId, link.SpanId);
+                            OtlpSpan? linkedSpan = GetSpanUnsynchronized(link.TraceId, link.SpanId);
                             linkedSpan?.BackLinks.Add(link);
                         }
 
@@ -724,10 +733,10 @@ public sealed class TelemetryRepository
                         // 2. The first span of the trace has changed.
                         if (newTrace)
                         {
-                            var added = false;
-                            for (var i = _traces.Count - 1; i >= 0; i--)
+                            bool added = false;
+                            for (int i = _traces.Count - 1; i >= 0; i--)
                             {
-                                var currentTrace = _traces[i];
+                                OtlpTrace? currentTrace = _traces[i];
                                 if (trace.FirstSpan.StartTime > currentTrace.FirstSpan.StartTime)
                                 {
                                     _traces.Insert(i + 1, trace);
@@ -744,15 +753,15 @@ public sealed class TelemetryRepository
                         {
                             if (trace.FirstSpan == newSpan)
                             {
-                                var moved = false;
-                                var index = _traces.IndexOf(trace);
+                                bool moved = false;
+                                int index = _traces.IndexOf(trace);
 
-                                for (var i = index - 1; i >= 0; i--)
+                                for (int i = index - 1; i >= 0; i--)
                                 {
-                                    var currentTrace = _traces[i];
+                                    OtlpTrace? currentTrace = _traces[i];
                                     if (trace.FirstSpan.StartTime > currentTrace.FirstSpan.StartTime)
                                     {
-                                        var insertPosition = i + 1;
+                                        int insertPosition = i + 1;
                                         if (index != insertPosition)
                                         {
                                             _traces.RemoveAt(index);
@@ -784,7 +793,6 @@ public sealed class TelemetryRepository
                     AssertTraceOrder();
                     AssertSpanLinks();
                 }
-
             }
         }
         finally
@@ -794,8 +802,8 @@ public sealed class TelemetryRepository
 
         static bool TryGetTraceById(CircularBuffer<OtlpTrace> traces, ReadOnlyMemory<byte> traceId, [NotNullWhen(true)] out OtlpTrace? trace)
         {
-            var s = traceId.Span;
-            for (var i = traces.Count - 1; i >= 0; i--)
+            ReadOnlySpan<byte> s = traceId.Span;
+            for (int i = traces.Count - 1; i >= 0; i--)
             {
                 if (traces[i].Key.Span.SequenceEqual(s))
                 {
@@ -813,9 +821,9 @@ public sealed class TelemetryRepository
     private void AssertTraceOrder()
     {
         DateTime current = default;
-        for (var i = 0; i < _traces.Count; i++)
+        for (int i = 0; i < _traces.Count; i++)
         {
-            var trace = _traces[i];
+            OtlpTrace? trace = _traces[i];
             if (trace.FirstSpan.StartTime < current)
             {
                 throw new InvalidOperationException($"Traces not in order at index {i}.");
@@ -829,15 +837,15 @@ public sealed class TelemetryRepository
     private void AssertSpanLinks()
     {
         // Create a local copy of span links.
-        var currentSpanLinks = _spanLinks.ToList();
+        List<OtlpSpanLink>? currentSpanLinks = _spanLinks.ToList();
 
         // Remove span links that match span links on spans.
         // Throw an error if an expected span link doesn't exist.
-        foreach (var trace in _traces)
+        foreach (OtlpTrace? trace in _traces)
         {
-            foreach (var span in trace.Spans)
+            foreach (OtlpSpan? span in trace.Spans)
             {
-                foreach (var link in span.Links)
+                foreach (OtlpSpanLink? link in span.Links)
                 {
                     if (!currentSpanLinks.Remove(link))
                     {
@@ -850,9 +858,9 @@ public sealed class TelemetryRepository
         // Throw error if there are orphaned span links.
         if (currentSpanLinks.Count > 0)
         {
-            var sb = new StringBuilder();
+            StringBuilder? sb = new StringBuilder();
             sb.AppendLine(CultureInfo.InvariantCulture, $"There are {currentSpanLinks.Count} orphaned span links.");
-            foreach (var link in currentSpanLinks)
+            foreach (OtlpSpanLink? link in currentSpanLinks)
             {
                 sb.AppendLine(CultureInfo.InvariantCulture, $"\tSource span ID: {link.SourceSpanId}, Target span ID: {link.SpanId}");
             }
@@ -863,14 +871,14 @@ public sealed class TelemetryRepository
 
     private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options)
     {
-        var id = span.SpanId?.ToHexString();
+        string? id = span.SpanId?.ToHexString();
         if (id is null)
         {
             throw new ArgumentException("Span has no SpanId");
         }
 
-        var events = new List<OtlpSpanEvent>();
-        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
+        List<OtlpSpanEvent>? events = new List<OtlpSpanEvent>();
+        foreach (Event? e in span.Events.OrderBy(e => e.TimeUnixNano))
         {
             events.Add(new OtlpSpanEvent
             {
@@ -885,8 +893,8 @@ public sealed class TelemetryRepository
             }
         }
 
-        var links = new List<OtlpSpanLink>();
-        foreach (var e in span.Links)
+        List<OtlpSpanLink>? links = new List<OtlpSpanLink>();
+        foreach (Link? e in span.Links)
         {
             links.Add(new OtlpSpanLink
             {
@@ -899,7 +907,7 @@ public sealed class TelemetryRepository
             });
         }
 
-        var newSpan = new OtlpSpan(application, trace, scope)
+        OtlpSpan? newSpan = new OtlpSpan(application, trace, scope)
         {
             SpanId = id,
             ParentSpanId = span.ParentSpanId?.ToHexString(),
@@ -920,7 +928,7 @@ public sealed class TelemetryRepository
 
     public List<OtlpInstrumentSummary> GetInstrumentsSummaries(ApplicationKey key)
     {
-        var applications = GetApplications(key);
+        List<OtlpApplication>? applications = GetApplications(key);
         if (applications.Count == 0)
         {
             return new List<OtlpInstrumentSummary>();
@@ -931,20 +939,19 @@ public sealed class TelemetryRepository
         }
         else
         {
-            var allApplicationSummaries = applications
+            List<OtlpInstrumentSummary>? allApplicationSummaries = applications
                 .SelectMany(a => a.GetInstrumentsSummary())
                 .DistinctBy(s => s.GetKey())
                 .ToList();
 
             return allApplicationSummaries;
         }
-
     }
 
     public OtlpInstrumentData? GetInstrument(GetInstrumentRequest request)
     {
-        var applications = GetApplications(request.ApplicationKey);
-        var instruments = applications
+        List<OtlpApplication>? applications = GetApplications(request.ApplicationKey);
+        List<OtlpInstrument>? instruments = applications
             .Select(a => a.GetInstrument(request.MeterName, request.InstrumentName, request.StartTime, request.EndTime))
             .OfType<OtlpInstrument>()
             .ToList();
@@ -955,7 +962,7 @@ public sealed class TelemetryRepository
         }
         else if (instruments.Count == 1)
         {
-            var instrument = instruments[0];
+            OtlpInstrument? instrument = instruments[0];
             return new OtlpInstrumentData
             {
                 Summary = instrument.Summary,
@@ -965,16 +972,16 @@ public sealed class TelemetryRepository
         }
         else
         {
-            var allDimensions = new List<DimensionScope>();
-            var allKnownAttributes = new Dictionary<string, List<string>>();
+            List<DimensionScope>? allDimensions = new List<DimensionScope>();
+            Dictionary<string, List<string>>? allKnownAttributes = new Dictionary<string, List<string>>();
 
-            foreach (var instrument in instruments)
+            foreach (OtlpInstrument? instrument in instruments)
             {
                 allDimensions.AddRange(instrument.Dimensions.Values);
 
-                foreach (var knownAttributeValues in instrument.KnownAttributeValues)
+                foreach (KeyValuePair<string, List<string>> knownAttributeValues in instrument.KnownAttributeValues)
                 {
-                    if (allKnownAttributes.TryGetValue(knownAttributeValues.Key, out var values))
+                    if (allKnownAttributes.TryGetValue(knownAttributeValues.Key, out List<string>? values))
                     {
                         allKnownAttributes[knownAttributeValues.Key] = values.Union(knownAttributeValues.Value).ToList();
                     }

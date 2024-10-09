@@ -1,22 +1,33 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Channels;
-using Aspire.Dashboard.Configuration;
+using System.Threading.Tasks;
+using Aspire;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Aspire.ResourceService.Proto.V1;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Utils;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Resource = Aspire.ResourceService.Proto.V1.Resource;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 /// <summary>
 /// Implements gRPC client that communicates with a resource server, populating data for the dashboard.
@@ -75,7 +86,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = _dashboardOptions.ResourceServiceClient.GetUri();
+        Uri? address = _dashboardOptions.ResourceServiceClient.GetUri();
 
         if (address is null)
         {
@@ -102,7 +113,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         GrpcChannel CreateChannel()
         {
-            var httpHandler = new SocketsHttpHandler
+            SocketsHttpHandler? httpHandler = new SocketsHttpHandler
             {
                 EnableMultipleHttp2Connections = true,
                 KeepAlivePingDelay = TimeSpan.FromSeconds(20),
@@ -110,12 +121,12 @@ internal sealed class DashboardClient : IDashboardClient
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
 
-            var authMode = _dashboardOptions.ResourceServiceClient.AuthMode;
+            ResourceClientAuthMode? authMode = _dashboardOptions.ResourceServiceClient.AuthMode;
 
             if (authMode == ResourceClientAuthMode.Certificate)
             {
                 // Auth hasn't been suppressed, so configure it.
-                var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificate.Source switch
+                X509CertificateCollection? certificates = _dashboardOptions.ResourceServiceClient.ClientCertificate.Source switch
                 {
                     DashboardClientCertificateSource.File => GetFileCertificate(),
                     DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
@@ -132,7 +143,7 @@ internal sealed class DashboardClient : IDashboardClient
 
             // https://learn.microsoft.com/aspnet/core/grpc/retries
 
-            var methodConfig = new MethodConfig
+            MethodConfig? methodConfig = new MethodConfig
             {
                 Names = { MethodName.Default },
                 RetryPolicy = new RetryPolicy
@@ -165,8 +176,8 @@ internal sealed class DashboardClient : IDashboardClient
                     _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath != null,
                     "FilePath is validated as not null when configuration is loaded.");
 
-                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
-                var password = _dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
+                string? filePath = _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
+                string? password = _dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
 
                 return [new X509Certificate2(filePath, password)];
             }
@@ -177,15 +188,15 @@ internal sealed class DashboardClient : IDashboardClient
                     _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject != null,
                     "Subject is validated as not null when configuration is loaded.");
 
-                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject;
-                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificate.Store ?? "My";
-                var location = _dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.CurrentUser;
+                string? subject = _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject;
+                string? storeName = _dashboardOptions.ResourceServiceClient.ClientCertificate.Store ?? "My";
+                StoreLocation location = _dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.CurrentUser;
 
-                using var store = new X509Store(storeName: storeName, storeLocation: location);
+                using X509Store? store = new X509Store(storeName: storeName, storeLocation: location);
 
                 store.Open(OpenFlags.ReadOnly);
 
-                var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
+                X509Certificate2Collection? certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
 
                 if (certificates is [])
                 {
@@ -210,7 +221,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private void EnsureInitialized()
     {
-        var priorState = Interlocked.CompareExchange(ref _state, value: StateInitialized, comparand: StateNone);
+        int priorState = Interlocked.CompareExchange(ref _state, value: StateInitialized, comparand: StateNone);
 
         if (priorState is StateDisabled)
         {
@@ -249,7 +260,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    var response = await _client!.GetApplicationInformationAsync(new(), headers: _headers, cancellationToken: cancellationToken);
+                    ApplicationInformationResponse? response = await _client!.GetApplicationInformationAsync(new(), headers: _headers, cancellationToken: cancellationToken);
 
                     _applicationName = response.ApplicationName;
 
@@ -267,7 +278,7 @@ internal sealed class DashboardClient : IDashboardClient
                 // As this number climbs, we extend the amount of time between reconnection attempts, in
                 // order to avoid flooding the server with requests. This value is reset to zero whenever
                 // a message is successfully received.
-                var errorCount = 0;
+                int errorCount = 0;
 
                 while (true)
                 {
@@ -278,7 +289,7 @@ internal sealed class DashboardClient : IDashboardClient
                         // The most recent attempt failed. There may be more than one failure.
                         // We wait for a period of time determined by the number of errors,
                         // where the time grows exponentially, until a threshold.
-                        var delay = ExponentialBackOff(errorCount, maxSeconds: 15);
+                        TimeSpan delay = ExponentialBackOff(errorCount, maxSeconds: 15);
 
                         await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                     }
@@ -308,9 +319,9 @@ internal sealed class DashboardClient : IDashboardClient
 
                 async Task WatchResourcesAsync()
                 {
-                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
+                    AsyncServerStreamingCall<WatchResourcesUpdate>? call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
 
-                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+                    await foreach (WatchResourcesUpdate? response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                     {
                         List<ResourceViewModelChange>? changes = null;
 
@@ -326,10 +337,10 @@ internal sealed class DashboardClient : IDashboardClient
 
                                 // TODO send a "clear" event via outgoing channels, in case consumers have extra items to be removed
 
-                                foreach (var resource in response.InitialData.Resources)
+                                foreach (Resource? resource in response.InitialData.Resources)
                                 {
                                     // Add to map.
-                                    var viewModel = resource.ToViewModel();
+                                    ResourceViewModel? viewModel = resource.ToViewModel();
                                     _resourceByName[resource.Name] = viewModel;
 
                                     // Send this update to any subscribers too.
@@ -342,21 +353,21 @@ internal sealed class DashboardClient : IDashboardClient
                             else if (response.KindCase == WatchResourcesUpdate.KindOneofCase.Changes)
                             {
                                 // Apply changes to the model.
-                                foreach (var change in response.Changes.Value)
+                                foreach (WatchResourcesChange? change in response.Changes.Value)
                                 {
                                     changes ??= [];
 
                                     if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                                     {
                                         // Upsert (i.e. add or replace)
-                                        var viewModel = change.Upsert.ToViewModel();
+                                        ResourceViewModel? viewModel = change.Upsert.ToViewModel();
                                         _resourceByName[change.Upsert.Name] = viewModel;
                                         changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                     }
                                     else if (change.KindCase == WatchResourcesChange.KindOneofCase.Delete)
                                     {
                                         // Remove
-                                        if (_resourceByName.Remove(change.Delete.ResourceName, out var removed))
+                                        if (_resourceByName.Remove(change.Delete.ResourceName, out ResourceViewModel? removed))
                                         {
                                             changes.Add(new(ResourceViewModelChangeType.Delete, removed));
                                         }
@@ -379,7 +390,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                         if (changes is not null)
                         {
-                            foreach (var channel in _outgoingChannels)
+                            foreach (Channel<IReadOnlyList<ResourceViewModelChange>>? channel in _outgoingChannels)
                             {
                                 // Channel is unbound so TryWrite always succeeds.
                                 channel.Writer.TryWrite(changes);
@@ -407,14 +418,14 @@ internal sealed class DashboardClient : IDashboardClient
     {
         get => _applicationName
             ?? _dashboardOptions.ApplicationName
-            ?? "Aspire";
+            ?? "Turbine";
     }
 
     async Task<ResourceViewModelSubscription> IDashboardClient.SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        CancellationTokenSource? cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         // Wait for initial data to be received from the server. This allows initial data to be returned with subscription when client is starting.
         await _initialDataReceivedTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
@@ -422,7 +433,7 @@ internal sealed class DashboardClient : IDashboardClient
         // There are two types of channel in this class. This is not a gRPC channel.
         // It's a producer-consumer queue channel, used to push updates to subscribers
         // without blocking the producer here.
-        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>(
+        Channel<IReadOnlyList<ResourceViewModelChange>>? channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
         lock (_lock)
@@ -438,7 +449,7 @@ internal sealed class DashboardClient : IDashboardClient
         {
             try
             {
-                await foreach (var batch in channel.GetBatchesAsync(minReadInterval: TimeSpan.FromMilliseconds(100), cancellationToken: enumeratorCancellationToken).ConfigureAwait(false))
+                await foreach (IReadOnlyList<IReadOnlyList<ResourceViewModelChange>>? batch in channel.GetBatchesAsync(minReadInterval: TimeSpan.FromMilliseconds(100), cancellationToken: enumeratorCancellationToken).ConfigureAwait(false))
                 {
                     if (batch.Count == 1)
                     {
@@ -462,27 +473,27 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        using CancellationTokenSource? combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
-        var call = _client!.WatchResourceConsoleLogs(
+        AsyncServerStreamingCall<WatchResourceConsoleLogsUpdate>? call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             headers: _headers,
             cancellationToken: combinedTokens.Token);
 
         // Write incoming logs to a channel, and then read from that channel to yield the logs.
         // We do this to batch logs together and enforce a minimum read interval.
-        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(
+        Channel<IReadOnlyList<ResourceLogLine>>? channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
-        var readTask = Task.Run(async () =>
+        Task? readTask = Task.Run(async () =>
         {
             try
             {
-                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
+                await foreach (WatchResourceConsoleLogsUpdate? response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
-                    var logLines = new ResourceLogLine[response.LogLines.Count];
+                    ResourceLogLine[]? logLines = new ResourceLogLine[response.LogLines.Count];
 
-                    for (var i = 0; i < logLines.Length; i++)
+                    for (int i = 0; i < logLines.Length; i++)
                     {
                         logLines[i] = new ResourceLogLine(response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
                     }
@@ -497,7 +508,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }, combinedTokens.Token);
 
-        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(false))
+        await foreach (IReadOnlyList<IReadOnlyList<ResourceLogLine>>? batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(false))
         {
             if (batch.Count == 1)
             {
@@ -516,7 +527,7 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        var request = new ResourceCommandRequest()
+        ResourceCommandRequest? request = new ResourceCommandRequest()
         {
             CommandType = command.CommandType,
             Parameter = command.Parameter,
@@ -526,9 +537,9 @@ internal sealed class DashboardClient : IDashboardClient
 
         try
         {
-            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+            using CancellationTokenSource? combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
-            var response = await _client!.ExecuteResourceCommandAsync(request, headers: _headers, cancellationToken: combinedTokens.Token);
+            ResourceCommandResponse? response = await _client!.ExecuteResourceCommandAsync(request, headers: _headers, cancellationToken: combinedTokens.Token);
 
             return response.ToViewModel();
         }
@@ -536,7 +547,7 @@ internal sealed class DashboardClient : IDashboardClient
         {
             _logger.LogError(ex, "Error executing command \"{CommandType}\" on resource \"{ResourceName}\": {StatusCode}", command.CommandType, resourceName, ex.StatusCode);
 
-            var errorMessage = ex.StatusCode == StatusCode.Unimplemented ? "Command not implemented" : "Unknown error. See logs for details";
+            string? errorMessage = ex.StatusCode == StatusCode.Unimplemented ? "Command not implemented" : "Unknown error. See logs for details";
 
             return new ResourceCommandResponseViewModel()
             {
@@ -570,7 +581,7 @@ internal sealed class DashboardClient : IDashboardClient
         {
             lock (_lock)
             {
-                foreach (var data in initialData)
+                foreach (Resource? data in initialData)
                 {
                     _resourceByName[data.Name] = data.ToViewModel();
                 }

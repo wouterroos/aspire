@@ -1,9 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
-namespace Aspire.Dashboard.Model.BrowserStorage;
+namespace Turbine.Dashboard.Model.BrowserStorage;
 
 public abstract class BrowserStorageBase : IBrowserStorage
 {
@@ -16,7 +17,7 @@ public abstract class BrowserStorageBase : IBrowserStorage
 
     public async Task<StorageResult<T>> GetAsync<T>(string key)
     {
-        var result = await _protectedBrowserStorage.GetAsync<T>(key).ConfigureAwait(false);
+        ProtectedBrowserStorageResult<T> result = await _protectedBrowserStorage.GetAsync<T>(key).ConfigureAwait(false);
         return new StorageResult<T>(result.Success, result.Value);
     }
 

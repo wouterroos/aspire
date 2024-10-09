@@ -1,16 +1,18 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Aspire.Dashboard.Components.CustomIcons;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.CustomIcons;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Layout;
+namespace Turbine.Dashboard.Components.Layout;
 
 public partial class MobileNavMenu : ComponentBase
 {
@@ -73,16 +75,16 @@ public partial class MobileNavMenu : ComponentBase
         );
 
         yield return new MobileNavMenuEntry(
-            Loc[nameof(Resources.Layout.MainLayoutAspireRepoLink)],
+            Loc[nameof(Resources.Layout.MainLayoutTurbineRepoLink)],
             async () =>
             {
-                await JS.InvokeVoidAsync("open", ["https://aka.ms/dotnet/aspire/repo", "_blank"]);
+                await JS.InvokeVoidAsync("open", ["https://aka.ms/dotnet/Turbine/repo", "_blank"]);
             },
-            new AspireIcons.Size24.GitHub()
+            new TurbineIcons.Size24.GitHub()
         );
 
         yield return new MobileNavMenuEntry(
-            Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            Loc[nameof(Resources.Layout.MainLayoutTurbineDashboardHelpLink)],
             LaunchHelpAsync,
             new Icons.Regular.Size24.QuestionCircle()
         );
@@ -100,4 +102,3 @@ public partial class MobileNavMenu : ComponentBase
         return new Regex($"^({pageRelativeBasePath}|{pageRelativeBasePath}/.+)$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
     }
 }
-

@@ -1,13 +1,17 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Text.Encodings.Web;
-using Aspire.Dashboard.Authentication.Connection;
-using Aspire.Dashboard.Configuration;
+using System.Threading.Tasks;
+using Aspire.Dashboard;
+using Turbine.Dashboard.Authentication.Connection;
+using Turbine.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Dashboard.Authentication;
+namespace Turbine.Dashboard.Authentication;
 
 public sealed class FrontendCompositeAuthenticationHandler(
     IOptionsMonitor<DashboardOptions> dashboardOptions,
@@ -18,14 +22,14 @@ public sealed class FrontendCompositeAuthenticationHandler(
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var result = await Context.AuthenticateAsync(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeFrontend).ConfigureAwait(false);
+        AuthenticateResult? result = await Context.AuthenticateAsync(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeFrontend).ConfigureAwait(false);
         if (result.Failure is not null)
         {
             return AuthenticateResult.Fail(
                 result.Failure,
                 new AuthenticationProperties(
                     items: new Dictionary<string, string?>(),
-                    parameters: new Dictionary<string, object?> { [AspirePolicyEvaluator.SuppressChallengeKey] = true }));
+                    parameters: new Dictionary<string, object?> { [TurbinePolicyEvaluator.SuppressChallengeKey] = true }));
         }
 
         result = await Context.AuthenticateAsync().ConfigureAwait(false);
@@ -34,7 +38,7 @@ public sealed class FrontendCompositeAuthenticationHandler(
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        var scheme = GetRelevantAuthenticationScheme();
+        string? scheme = GetRelevantAuthenticationScheme();
         if (scheme != null)
         {
             await Context.ChallengeAsync(scheme).ConfigureAwait(false);

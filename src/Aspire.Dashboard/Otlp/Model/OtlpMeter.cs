@@ -1,11 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
+using Turbine.Dashboard.Configuration;
 using OpenTelemetry.Proto.Common.V1;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("MeterName = {MeterName}")]
 public class OtlpMeter

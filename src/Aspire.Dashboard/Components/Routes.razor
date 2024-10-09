@@ -1,4 +1,4 @@
-﻿@using Aspire.Dashboard.Components.Resize
+﻿@using Turbine.Dashboard.Components.Resize
 @inject IStringLocalizer<Resources.Routes> Loc
 
 <BrowserDimensionWatcher @bind-ViewportInformation="@_viewportInformation" />
@@ -19,7 +19,7 @@
         <NotFound>
             <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
             <LayoutView Layout="@typeof(Layout.MainLayout)">
-                <Aspire.Dashboard.Components.Pages.NotFound />
+                <Turbine.Dashboard.Components.Pages.NotFound />
             </LayoutView>
         </NotFound>
     </Router>

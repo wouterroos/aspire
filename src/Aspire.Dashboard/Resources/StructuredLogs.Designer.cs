@@ -7,7 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Aspire.Dashboard.Resources {
+namespace Turbine.Dashboard.Resources {
     using System;
     
     
@@ -38,7 +38,7 @@ namespace Aspire.Dashboard.Resources {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Dashboard.Resources.StructuredLogs", typeof(StructuredLogs).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Turbine.Dashboard.Resources.StructuredLogs", typeof(StructuredLogs).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

@@ -1,10 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Net;
-using Aspire.Dashboard.Model;
+using Turbine.Dashboard.Model;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Turbine.Dashboard.ConsoleLogs;
 
 internal sealed class LogParser
 {
@@ -26,13 +27,13 @@ internal sealed class LogParser
         // 7. Set the relative properties of the log entry (parent/line index/etc)
         // 8. Return the final result
 
-        var content = rawText;
+        string? content = rawText;
 
         // 1. Parse the content to look for the timestamp
-        var isFirstLine = false;
+        bool isFirstLine = false;
         DateTimeOffset? timestamp = null;
 
-        if (TimestampParser.TryParseConsoleTimestamp(content, out var timestampParseResult))
+        if (TimestampParser.TryParseConsoleTimestamp(content, out TimestampParser.TimestampParserResult? timestampParseResult))
         {
             isFirstLine = true;
             content = timestampParseResult.Value.ModifiedText;
@@ -52,18 +53,18 @@ internal sealed class LogParser
         content = WebUtility.HtmlEncode(content);
 
         // 4. Parse the content to look for ANSI Control Sequences and color them if possible
-        var conversionResult = AnsiParser.ConvertToHtml(content, _residualState);
+        AnsiParser.ConversionResult conversionResult = AnsiParser.ConvertToHtml(content, _residualState);
         content = conversionResult.ConvertedText;
         _residualState = conversionResult.ResidualState;
 
         // 5. Parse the content to look for URLs and make them links if possible
-        if (UrlParser.TryParse(content, out var modifiedText))
+        if (UrlParser.TryParse(content, out string? modifiedText))
         {
             content = modifiedText;
         }
 
         // 6. Create the LogEntry to get the ID
-        var logEntry = new LogEntry
+        LogEntry? logEntry = new LogEntry
         {
             Timestamp = timestamp,
             Content = content,

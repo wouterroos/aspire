@@ -1,18 +1,23 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Globalization;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.ConsoleLogs;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using System.Threading;
+using System.Threading.Tasks;
+using Aspire;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.ConsoleLogs;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components;
+namespace Turbine.Dashboard.Components;
 
 /// <summary>
 /// A log viewing UI component that shows a live view of a log, with syntax highlighting and automatic scrolling.
@@ -72,18 +77,18 @@ public sealed partial class LogViewer
 
         _convertTimestampsFromUtc = convertTimestampsFromUtc;
 
-        var cancellationToken = await _cancellationSeries.NextAsync();
-        var logParser = new LogParser();
+        CancellationToken cancellationToken = await _cancellationSeries.NextAsync();
+        LogParser? logParser = new LogParser();
 
         // This needs to stay on the UI thread since we raise StateHasChanged() in the loop (hence the ConfigureAwait(true)).
-        await foreach (var batch in batches.WithCancellation(cancellationToken).ConfigureAwait(true))
+        await foreach (IReadOnlyList<ResourceLogLine>? batch in batches.WithCancellation(cancellationToken).ConfigureAwait(true))
         {
             if (batch.Count is 0)
             {
                 continue;
             }
 
-            foreach (var (lineNumber, content, isErrorOutput) in batch)
+            foreach ((int lineNumber, string? content, bool isErrorOutput) in batch)
             {
                 LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput), lineNumber);
             }

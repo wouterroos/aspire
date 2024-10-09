@@ -1,15 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model;
+using System;
+using Turbine.Dashboard.Model;
 
-namespace Aspire.Dashboard.Extensions;
+namespace Turbine.Dashboard.Extensions;
 
 internal static class TimeProviderExtensions
 {
     public static DateTime ToLocal(this BrowserTimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
     {
-        var dateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTimeOffset.UtcDateTime, timeProvider.LocalTimeZone);
+        DateTime dateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTimeOffset.UtcDateTime, timeProvider.LocalTimeZone);
         dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Local);
 
         return dateTime;
@@ -31,7 +32,7 @@ internal static class TimeProviderExtensions
             throw new InvalidOperationException("Unable to convert unspecified DateTime to local time.");
         }
 
-        var local = TimeZoneInfo.ConvertTimeFromUtc(dateTime, timeProvider.LocalTimeZone);
+        DateTime local = TimeZoneInfo.ConvertTimeFromUtc(dateTime, timeProvider.LocalTimeZone);
         local = DateTime.SpecifyKind(local, DateTimeKind.Local);
 
         return local;

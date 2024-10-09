@@ -1,13 +1,20 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Otlp.Model;
+using System.Threading;
+using System.Threading.Tasks;
+using Aspire;
 using Aspire.Dashboard.Utils;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Utils;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
@@ -26,22 +33,22 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         _watchTask = Task.Run(async () =>
         {
-            var (snapshot, subscription) = await resourceService.SubscribeResourcesAsync(_watchContainersTokenSource.Token).ConfigureAwait(false);
+            (ImmutableArray<ResourceViewModel> snapshot, IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>>? subscription) = await resourceService.SubscribeResourcesAsync(_watchContainersTokenSource.Token).ConfigureAwait(false);
 
             if (snapshot.Length > 0)
             {
-                foreach (var resource in snapshot)
+                foreach (ResourceViewModel? resource in snapshot)
                 {
-                    var added = _resourceByName.TryAdd(resource.Name, resource);
+                    bool added = _resourceByName.TryAdd(resource.Name, resource);
                     Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
                 }
 
                 await RaisePeerChangesAsync().ConfigureAwait(false);
             }
 
-            await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token).ConfigureAwait(false))
+            await foreach (IReadOnlyList<ResourceViewModelChange>? changes in subscription.WithCancellation(_watchContainersTokenSource.Token).ConfigureAwait(false))
             {
-                foreach (var (changeType, resource) in changes)
+                foreach ((ResourceViewModelChangeType changeType, ResourceViewModel? resource) in changes)
                 {
                     if (changeType == ResourceViewModelChangeType.Upsert)
                     {
@@ -49,7 +56,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
                     {
-                        var removed = _resourceByName.TryRemove(resource.Name, out _);
+                        bool removed = _resourceByName.TryRemove(resource.Name, out _);
                         Debug.Assert(removed, "Cannot remove unknown resource.");
                     }
                 }
@@ -66,7 +73,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? name)
     {
-        var address = OtlpHelpers.GetPeerAddress(attributes);
+        string? address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
         {
             // Match exact value.
@@ -78,8 +85,8 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             // Resource addresses have the format "127.0.0.1:5000". Some libraries modify the peer.service value on the span.
             // If there isn't an exact match then transform the peer.service value and try to match again.
             // Change from transformers are cumulative. e.g. "localhost,5000" -> "localhost:5000" -> "127.0.0.1:5000"
-            var transformedAddress = address;
-            foreach (var transformer in s_addressTransformers)
+            string? transformedAddress = address;
+            foreach (Func<string, string>? transformer in s_addressTransformers)
             {
                 transformedAddress = transformer(transformedAddress);
                 if (TryMatchResourceAddress(transformedAddress, out name))
@@ -94,11 +101,11 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name)
         {
-            foreach (var (resourceName, resource) in resources)
+            foreach ((string? resourceName, ResourceViewModel? resource) in resources)
             {
-                foreach (var service in resource.Urls)
+                foreach (UrlViewModel? service in resource.Urls)
                 {
-                    var hostAndPort = service.Url.GetComponents(UriComponents.Host | UriComponents.Port, UriFormat.UriEscaped);
+                    string? hostAndPort = service.Url.GetComponents(UriComponents.Host | UriComponents.Port, UriFormat.UriEscaped);
 
                     if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
                     {
@@ -134,7 +141,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     {
         lock (_lock)
         {
-            var subscription = new ModelSubscription(callback, RemoveSubscription);
+            ModelSubscription? subscription = new ModelSubscription(callback, RemoveSubscription);
             _subscriptions.Add(subscription);
             return subscription;
         }
@@ -161,7 +168,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             subscriptions = _subscriptions.ToArray();
         }
 
-        foreach (var subscription in subscriptions)
+        foreach (ModelSubscription? subscription in subscriptions)
         {
             await subscription.ExecuteAsync().ConfigureAwait(false);
         }

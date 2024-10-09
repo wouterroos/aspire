@@ -1,9 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Authentication.Connection;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Turbine.Dashboard.Authentication.Connection;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 /// <summary>
 /// Middleware adds headers related to browser security that aren't built into ASP.NET Core:
@@ -32,11 +35,11 @@ internal sealed class BrowserSecurityHeadersMiddleware
         // Changes:
         // - style-src adds inline styles as they're used extensively by Blazor FluentUI.
         // - frame-src none added to prevent nesting in iframe.
-        var content = "base-uri 'self'; " +
-            "object-src 'none'; " +
-            "script-src 'self'; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "frame-src 'none';";
+        string? content = "base-uri 'self'; " +
+                          "object-src 'none'; " +
+                          "script-src 'self'; " +
+                          "style-src 'self' 'unsafe-inline'; " +
+                          "frame-src 'none';";
 
         if (isHttps)
         {
@@ -63,7 +66,7 @@ internal sealed class BrowserSecurityHeadersMiddleware
     public Task InvokeAsync(HttpContext context)
     {
         // Don't set browser security headers on OTLP requests.
-        var feature = context.Features.Get<IConnectionTypeFeature>();
+        IConnectionTypeFeature? feature = context.Features.Get<IConnectionTypeFeature>();
         if (feature == null || !feature.ConnectionTypes.Contains(ConnectionType.Otlp))
         {
             context.Response.Headers.ContentSecurityPolicy = context.Request.IsHttps

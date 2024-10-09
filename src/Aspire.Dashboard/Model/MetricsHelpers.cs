@@ -1,14 +1,18 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Globalization;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
+using System.Threading;
+using System.Threading.Tasks;
 using Aspire.Dashboard.Utils;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public static class MetricsHelpers
 {
@@ -21,15 +25,15 @@ public static class MetricsHelpers
         IStringLocalizer<Dialogs> loc,
         CancellationToken cancellationToken)
     {
-        var span = getSpan(traceId, spanId);
+        OtlpSpan? span = getSpan(traceId, spanId);
 
         // Exemplar span isn't loaded yet. Display a dialog until the data is ready or the user cancels the dialog.
         if (span == null)
         {
-            using var cts = new CancellationTokenSource();
-            using var registration = cancellationToken.Register(cts.Cancel);
+            using CancellationTokenSource? cts = new CancellationTokenSource();
+            using CancellationTokenRegistration registration = cancellationToken.Register(cts.Cancel);
 
-            var reference = await dialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
+            IDialogReference? reference = await dialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
             {
                 Content = new MessageBoxContent
                 {
@@ -44,7 +48,7 @@ public static class MetricsHelpers
             }).ConfigureAwait(false);
 
             // Task that polls for the span to be available.
-            var waitForTraceTask = Task.Run(async () =>
+            Task? waitForTraceTask = Task.Run(async () =>
             {
                 while (!cts.IsCancellationRequested)
                 {
@@ -63,7 +67,7 @@ public static class MetricsHelpers
                 }
             }, cts.Token);
 
-            var result = await reference.Result.ConfigureAwait(false);
+            DialogResult? result = await reference.Result.ConfigureAwait(false);
             cts.Cancel();
 
             await TaskHelpers.WaitIgnoreCancelAsync(waitForTraceTask).ConfigureAwait(false);

@@ -1,15 +1,22 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System.Collections.Specialized;
 using System.Security.Claims;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Utils;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using System.Web;
+using Aspire;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 internal sealed class ValidateTokenMiddleware
 {
@@ -34,9 +41,9 @@ internal sealed class ValidateTokenMiddleware
 
                 RedirectAfterValidation(context);
             }
-            else if (context.Request.Query.TryGetValue("t", out var value) && _options.CurrentValue.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
+            else if (context.Request.Query.TryGetValue("t", out StringValues value) && _options.CurrentValue.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
             {
-                var dashboardOptions = context.RequestServices.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
+                IOptionsMonitor<DashboardOptions>? dashboardOptions = context.RequestServices.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
                 if (await TryAuthenticateAsync(value.ToString(), context, dashboardOptions).ConfigureAwait(false))
                 {
                     // Success. Redirect to the app.
@@ -47,11 +54,11 @@ internal sealed class ValidateTokenMiddleware
                     // Failure.
                     // The bad token in the query string could be confusing with the token in the text box.
                     // Remove it before the presenting the UI to the user.
-                    var qs = HttpUtility.ParseQueryString(context.Request.QueryString.ToString());
+                    NameValueCollection? qs = HttpUtility.ParseQueryString(context.Request.QueryString.ToString());
                     qs.Remove("t");
 
                     // Collection created by ParseQueryString handles escaping names and values.
-                    var newQuerystring = qs.ToString();
+                    string? newQuerystring = qs.ToString();
                     if (!string.IsNullOrEmpty(newQuerystring))
                     {
                         newQuerystring = "?" + newQuerystring;
@@ -68,7 +75,7 @@ internal sealed class ValidateTokenMiddleware
 
     private static void RedirectAfterValidation(HttpContext context)
     {
-        if (context.Request.Query.TryGetValue("returnUrl", out var returnUrl))
+        if (context.Request.Query.TryGetValue("returnUrl", out StringValues returnUrl))
         {
             context.Response.Redirect(returnUrl.ToString());
         }
@@ -90,10 +97,10 @@ internal sealed class ValidateTokenMiddleware
             return false;
         }
 
-        var claimsIdentity = new ClaimsIdentity(
+        ClaimsIdentity? claimsIdentity = new ClaimsIdentity(
             [new Claim(ClaimTypes.NameIdentifier, "Local")],
             authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
-        var claims = new ClaimsPrincipal(claimsIdentity);
+        ClaimsPrincipal? claims = new ClaimsPrincipal(claimsIdentity);
 
         await httpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,

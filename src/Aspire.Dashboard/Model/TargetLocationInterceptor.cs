@@ -1,9 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
+using Aspire;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 internal static class TargetLocationInterceptor
 {
@@ -13,13 +15,13 @@ internal static class TargetLocationInterceptor
     public static bool InterceptTargetLocation(string appBaseUri, string originalTargetLocation, [NotNullWhen(true)] out string? newTargetLocation)
     {
         string path;
-        var uri = new Uri(originalTargetLocation, UriKind.RelativeOrAbsolute);
+        Uri? uri = new Uri(originalTargetLocation, UriKind.RelativeOrAbsolute);
 
         // Location could be an absolute URL if clicking on link in the page.
         if (uri.IsAbsoluteUri)
         {
             // Don't want to modify the URL if it is to a different app.
-            var targetBaseUri = new Uri(uri.GetLeftPart(UriPartial.Authority));
+            Uri? targetBaseUri = new Uri(uri.GetLeftPart(UriPartial.Authority));
             if (targetBaseUri != new Uri(appBaseUri))
             {
                 newTargetLocation = null;

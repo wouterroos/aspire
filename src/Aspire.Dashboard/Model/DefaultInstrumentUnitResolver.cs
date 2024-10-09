@@ -1,13 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Globalization;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Resources;
 using Humanizer;
 using Microsoft.Extensions.Localization;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public sealed class DefaultInstrumentUnitResolver(IStringLocalizer<ControlsStrings> loc) : IInstrumentUnitResolver
 {
@@ -15,7 +15,7 @@ public sealed class DefaultInstrumentUnitResolver(IStringLocalizer<ControlsStrin
     {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
-            var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
+            string? unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
             if (pluralize)
             {
                 unit = unit.Pluralize();

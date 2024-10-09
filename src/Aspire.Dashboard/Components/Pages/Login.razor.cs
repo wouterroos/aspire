@@ -1,15 +1,18 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using System;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 public partial class Login : IAsyncDisposable
 {
@@ -41,7 +44,7 @@ public partial class Login : IAsyncDisposable
         // If the browser is already authenticated then redirect to the app.
         if (AuthenticationState is { } authStateTask)
         {
-            var state = await authStateTask;
+            AuthenticationState? state = await authStateTask;
             if (state.User.Identity?.IsAuthenticated ?? false)
             {
                 NavigationManager.NavigateTo(GetRedirectUrl(), forceLoad: true);
@@ -76,9 +79,9 @@ public partial class Login : IAsyncDisposable
         // Invoke a JS function to validate the token. This is required because a cookie can't be set from a SignalR connection.
         // The JS function calls an API back on the server to validate the token and that API call sets the cookie.
         // Because the browser made the API call the cookie is set in the browser.
-        var result = await _jsModule.InvokeAsync<string>("validateToken", _formModel.Token);
+        string? result = await _jsModule.InvokeAsync<string>("validateToken", _formModel.Token);
 
-        if (bool.TryParse(result, out var success))
+        if (bool.TryParse(result, out bool success))
         {
             if (success)
             {

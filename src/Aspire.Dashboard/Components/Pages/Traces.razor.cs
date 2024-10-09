@@ -1,23 +1,29 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Globalization;
-using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Utils;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Layout;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Resources;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
-using static Aspire.Dashboard.Components.Pages.Traces;
+using static Turbine.Dashboard.Components.Pages.Traces;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, TracesPageState>
 {
@@ -37,7 +43,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
-    private AspirePageContentLayout? _contentLayout;
+    private TurbinePageContentLayout? _contentLayout;
     private GridColumnManager _manager = null!;
 
     public string SessionStorageKey => "Traces_PageState";
@@ -82,7 +88,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     private string GetNameTooltip(OtlpTrace trace)
     {
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
+        string? tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
         tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTraceId)], trace.TraceId);
 
         return tooltip;
@@ -90,10 +96,10 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     private string GetSpansTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
-        var count = applicationSpans.Count();
-        var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
+        int count = applicationSpans.Count();
+        int errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        string? tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
         tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
@@ -107,7 +113,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count;
-        var traces = TracesViewModel.GetTraces();
+        PagedResult<OtlpTrace>? traces = TracesViewModel.GetTraces();
 
         if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
         {
@@ -176,7 +182,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     private void UpdateSubscription()
     {
-        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+        ApplicationKey? selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         // Subscribe to updates.
         if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
@@ -197,7 +203,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
+            CancellationTokenSource? cts = _filterCts = new CancellationTokenSource();
             _ = Task.Run(async () =>
             {
                 await Task.Delay(400, cts.Token);

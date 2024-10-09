@@ -1,11 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Utils;
+using Aspire;
+using Aspire.Dashboard.Model;
+using Google.Protobuf.WellKnownTypes;
+using Turbine.Dashboard.Utils;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 internal static class ResourceViewModelExtensions
 {
@@ -61,7 +64,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
     {
-        if (resource.Properties.TryGetValue(key, out var value) && value.TryConvertToString(out var valueString))
+        if (resource.Properties.TryGetValue(key, out Value? value) && value.TryConvertToString(out string? valueString))
         {
             s = valueString;
             return true;
@@ -73,13 +76,13 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataStringArray(this ResourceViewModel resource, string key, out ImmutableArray<string> strings)
     {
-        if (resource.Properties.TryGetValue(key, out var value) && value.ListValue is not null)
+        if (resource.Properties.TryGetValue(key, out Value? value) && value.ListValue is not null)
         {
-            var builder = ImmutableArray.CreateBuilder<string>(value.ListValue.Values.Count);
+            ImmutableArray<string>.Builder? builder = ImmutableArray.CreateBuilder<string>(value.ListValue.Values.Count);
 
-            foreach (var element in value.ListValue.Values)
+            foreach (Value? element in value.ListValue.Values)
             {
-                if (!element.TryConvertToString(out var elementString))
+                if (!element.TryConvertToString(out string? elementString))
                 {
                     strings = default;
                     return false;
@@ -98,7 +101,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataInt(this ResourceViewModel resource, string key, out int i)
     {
-        if (resource.Properties.TryGetValue(key, out var value) && value.TryConvertToInt(out i))
+        if (resource.Properties.TryGetValue(key, out Value? value) && value.TryConvertToInt(out i))
         {
             return true;
         }

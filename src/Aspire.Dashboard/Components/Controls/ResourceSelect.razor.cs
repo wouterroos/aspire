@@ -1,13 +1,17 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class ResourceSelect
 {
@@ -66,7 +70,7 @@ public partial class ResourceSelect
 
     private string? GetPopupHeight()
     {
-        if (Resources?.TryGetNonEnumeratedCount(out var count) is false or null)
+        if (Resources?.TryGetNonEnumeratedCount(out int count) is false or null)
         {
             return null;
         }

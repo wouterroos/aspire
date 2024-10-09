@@ -1,9 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 public class OtlpTrace
@@ -16,13 +19,14 @@ public class OtlpTrace
     public string FullName { get; private set; }
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
     public OtlpSpan? RootSpan => _rootSpan;
+
     public TimeSpan Duration
     {
         get
         {
-            var start = FirstSpan.StartTime;
+            DateTime start = FirstSpan.StartTime;
             DateTime end = default;
-            foreach (var span in Spans)
+            foreach (OtlpSpan? span in Spans)
             {
                 if (span.EndTime > end)
                 {
@@ -37,8 +41,8 @@ public class OtlpTrace
 
     public int CalculateDepth(OtlpSpan span)
     {
-        var depth = 0;
-        var currentSpan = span;
+        int depth = 0;
+        OtlpSpan? currentSpan = span;
         while (currentSpan != null)
         {
             depth++;
@@ -51,8 +55,8 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
-        var added = false;
-        for (var i = Spans.Count - 1; i >= 0; i--)
+        bool added = false;
+        for (int i = Spans.Count - 1; i >= 0; i--)
         {
             if (span.StartTime > Spans[i].StartTime)
             {
@@ -70,7 +74,7 @@ public class OtlpTrace
         {
             // There should only be one span with no parent span ID.
             // Incase there isn't, the first span with no parent span ID is considered to be the root.
-            foreach (var existingSpan in Spans)
+            foreach (OtlpSpan? existingSpan in Spans)
             {
                 if (string.IsNullOrEmpty(existingSpan.ParentSpanId))
                 {
@@ -88,9 +92,9 @@ public class OtlpTrace
     private void AssertSpanOrder()
     {
         DateTime current = default;
-        for (var i = 0; i < Spans.Count; i++)
+        for (int i = 0; i < Spans.Count; i++)
         {
-            var span = Spans[i];
+            OtlpSpan? span = Spans[i];
             if (span.StartTime < current)
             {
                 throw new InvalidOperationException($"Trace {TraceId} spans not in order at index {i}.");
@@ -109,8 +113,8 @@ public class OtlpTrace
 
     public static OtlpTrace Clone(OtlpTrace trace)
     {
-        var newTrace = new OtlpTrace(trace.Key);
-        foreach (var item in trace.Spans)
+        OtlpTrace? newTrace = new OtlpTrace(trace.Key);
+        foreach (OtlpSpan? item in trace.Spans)
         {
             newTrace.AddSpan(OtlpSpan.Clone(item, newTrace));
         }

@@ -1,12 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Linq;
 
-namespace Aspire.Dashboard.Authentication;
+namespace Turbine.Dashboard.Authentication;
 
 /// <summary>
 /// Mostly a copy of https://github.com/dotnet/aspnetcore/blob/e9647658dc46260cce21e980ec324565a4d39293/src/Security/Authorization/Policy/src/PolicyEvaluator.cs
@@ -41,9 +45,9 @@ public class AspirePolicyEvaluator : IPolicyEvaluator
         {
             ClaimsPrincipal? newPrincipal = null;
             DateTimeOffset? minExpiresUtc = null;
-            foreach (var scheme in policy.AuthenticationSchemes)
+            foreach (string scheme in policy.AuthenticationSchemes)
             {
-                var result = await context.AuthenticateAsync(scheme).ConfigureAwait(false);
+                AuthenticateResult result = await context.AuthenticateAsync(scheme).ConfigureAwait(false);
                 if (result != null)
                 {
                     if (result.Succeeded)
@@ -65,7 +69,7 @@ public class AspirePolicyEvaluator : IPolicyEvaluator
             if (newPrincipal != null)
             {
                 context.User = newPrincipal;
-                var ticket = new AuthenticationTicket(newPrincipal, string.Join(';', policy.AuthenticationSchemes));
+                AuthenticationTicket ticket = new AuthenticationTicket(newPrincipal, string.Join(';', policy.AuthenticationSchemes));
                 // ExpiresUtc is the easiest property to reason about when dealing with multiple schemes
                 // SignalR will use this property to evaluate auth expiration for long running connections
                 ticket.Properties.ExpiresUtc = minExpiresUtc;
@@ -111,14 +115,14 @@ public class AspirePolicyEvaluator : IPolicyEvaluator
             return PolicyAuthorizationResult.Forbid();
         }
 
-        var result = await _authorization.AuthorizeAsync(context.User, resource, policy).ConfigureAwait(false);
+        AuthorizationResult result = await _authorization.AuthorizeAsync(context.User, resource, policy).ConfigureAwait(false);
         if (result.Succeeded)
         {
             return PolicyAuthorizationResult.Success();
         }
 
         // If authentication was successful, return forbidden, otherwise challenge
-        return (authenticationResult.Succeeded)
+        return authenticationResult.Succeeded
             ? PolicyAuthorizationResult.Forbid(result.Failure)
             : PolicyAuthorizationResult.Challenge();
     }
@@ -131,7 +135,7 @@ public class AspirePolicyEvaluator : IPolicyEvaluator
             return additionalPrincipal;
         }
 
-        var newPrincipal = new ClaimsPrincipal();
+        ClaimsPrincipal newPrincipal = new ClaimsPrincipal();
 
         // New principal identities go first
         if (additionalPrincipal != null)

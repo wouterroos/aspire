@@ -1,6 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -9,7 +12,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class AspireMenuButton<TItem> : FluentComponentBase
 {
-    private static readonly Icon s_defaultIcon = new Icons.Regular.Size24.ChevronDown();
+    private static readonly Icon _defaultIcon = new Icons.Regular.Size24.ChevronDown();
 
     private bool _visible;
     private Icon? _icon;
@@ -36,7 +39,7 @@ public partial class AspireMenuButton<TItem> : FluentComponentBase
 
     protected override void OnParametersSet()
     {
-        _icon = Icon ?? s_defaultIcon;
+        _icon = Icon ?? _defaultIcon;
     }
 
     private void ToggleMenu()

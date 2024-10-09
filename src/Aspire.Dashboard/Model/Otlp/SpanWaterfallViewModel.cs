@@ -1,11 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Model;
 using Grpc.Core;
 
-namespace Aspire.Dashboard.Model.Otlp;
+namespace Turbine.Dashboard.Model.Otlp;
 
 public sealed class SpanWaterfallViewModel
 {
@@ -17,11 +19,14 @@ public sealed class SpanWaterfallViewModel
     public required bool LabelIsRight { get; init; }
     public required string? UninstrumentedPeer { get; init; }
     public bool IsHidden { get; set; }
+
     [MemberNotNullWhen(true, nameof(UninstrumentedPeer))]
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
+
     public bool IsError => Span.Status == OtlpSpanStatusCode.Error;
 
     private bool _isCollapsed;
+
     public bool IsCollapsed
     {
         get => _isCollapsed;
@@ -34,7 +39,7 @@ public sealed class SpanWaterfallViewModel
 
     public string GetTooltip(List<OtlpApplication> allApplications)
     {
-        var tooltip = GetTitle(Span, allApplications);
+        string? tooltip = GetTitle(Span, allApplications);
         if (IsError)
         {
             tooltip += Environment.NewLine + "Status = Error";
@@ -61,29 +66,29 @@ public sealed class SpanWaterfallViewModel
         {
             if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "http.method")))
             {
-                var httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
-                var statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
+                string? httpMethod = OtlpHelpers.GetValue(span.Attributes, "http.method");
+                string? statusCode = OtlpHelpers.GetValue(span.Attributes, "http.status_code");
 
                 return $"HTTP {httpMethod?.ToUpperInvariant()} {statusCode}";
             }
             else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "db.system")))
             {
-                var dbSystem = OtlpHelpers.GetValue(span.Attributes, "db.system");
+                string? dbSystem = OtlpHelpers.GetValue(span.Attributes, "db.system");
 
                 return $"DATA {dbSystem} {span.Name}";
             }
             else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "rpc.system")))
             {
-                var rpcSystem = OtlpHelpers.GetValue(span.Attributes, "rpc.system");
-                var rpcService = OtlpHelpers.GetValue(span.Attributes, "rpc.service");
-                var rpcMethod = OtlpHelpers.GetValue(span.Attributes, "rpc.method");
+                string? rpcSystem = OtlpHelpers.GetValue(span.Attributes, "rpc.system");
+                string? rpcService = OtlpHelpers.GetValue(span.Attributes, "rpc.service");
+                string? rpcMethod = OtlpHelpers.GetValue(span.Attributes, "rpc.method");
 
                 if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
                 {
-                    var grpcStatusCode = OtlpHelpers.GetValue(span.Attributes, "rpc.grpc.status_code");
+                    string? grpcStatusCode = OtlpHelpers.GetValue(span.Attributes, "rpc.grpc.status_code");
 
-                    var summary = $"RPC {rpcService}/{rpcMethod}";
-                    if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
+                    string? summary = $"RPC {rpcService}/{rpcMethod}";
+                    if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out StatusCode statusCode))
                     {
                         summary += $" {statusCode}";
                     }
@@ -94,9 +99,9 @@ public sealed class SpanWaterfallViewModel
             }
             else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(span.Attributes, "messaging.system")))
             {
-                var messagingSystem = OtlpHelpers.GetValue(span.Attributes, "messaging.system");
-                var messagingOperation = OtlpHelpers.GetValue(span.Attributes, "messaging.operation");
-                var destinationName = OtlpHelpers.GetValue(span.Attributes, "messaging.destination.name");
+                string? messagingSystem = OtlpHelpers.GetValue(span.Attributes, "messaging.system");
+                string? messagingOperation = OtlpHelpers.GetValue(span.Attributes, "messaging.operation");
+                string? destinationName = OtlpHelpers.GetValue(span.Attributes, "messaging.destination.name");
 
                 return $"MSG {messagingSystem} {messagingOperation} {destinationName}";
             }

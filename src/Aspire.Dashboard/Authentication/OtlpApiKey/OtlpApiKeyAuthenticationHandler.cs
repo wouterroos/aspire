@@ -1,12 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.Text.Encodings.Web;
-using Aspire.Dashboard.Configuration;
+using System.Threading.Tasks;
+using Aspire;
+using Turbine.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
-namespace Aspire.Dashboard.Authentication.OtlpApiKey;
+namespace Turbine.Dashboard.Authentication.OtlpApiKey;
 
 public class OtlpApiKeyAuthenticationHandler : AuthenticationHandler<OtlpApiKeyAuthenticationHandlerOptions>
 {
@@ -21,9 +25,9 @@ public class OtlpApiKeyAuthenticationHandler : AuthenticationHandler<OtlpApiKeyA
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var options = _dashboardOptions.CurrentValue.Otlp;
+        OtlpOptions? options = _dashboardOptions.CurrentValue.Otlp;
 
-        if (Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKey))
+        if (Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out StringValues apiKey))
         {
             // There must be only one header with the API key.
             if (apiKey.Count != 1)

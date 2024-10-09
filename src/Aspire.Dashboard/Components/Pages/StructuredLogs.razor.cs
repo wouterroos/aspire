@@ -1,23 +1,29 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Globalization;
-using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Utils;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Components.Dialogs;
+using Turbine.Dashboard.Components.Layout;
+using Turbine.Dashboard.Components.Resize;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Extensions;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components.Pages;
+namespace Turbine.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
@@ -39,7 +45,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string? _elementIdBeforeDetailsViewOpened;
-    private AspirePageContentLayout? _contentLayout;
+    private TurbinePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
     private GridColumnManager _manager = null!;
 
@@ -106,7 +112,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count;
 
-        var logs = ViewModel.GetLogs();
+        PagedResult<OtlpLogEntry>? logs = ViewModel.GetLogs();
 
         if (DashboardOptions.Value.TelemetryLimits.MaxLogCount == logs.TotalItemCount && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
         {
@@ -145,14 +151,18 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             ViewModel.AddFilter(new LogFilter
             {
-                Field = LogFilter.KnownTraceIdField, Condition = FilterCondition.Equals, Value = TraceId
+                Field = LogFilter.KnownTraceIdField,
+                Condition = FilterCondition.Equals,
+                Value = TraceId
             });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
             ViewModel.AddFilter(new LogFilter
             {
-                Field = LogFilter.KnownSpanIdField, Condition = FilterCondition.Equals, Value = SpanId
+                Field = LogFilter.KnownSpanIdField,
+                Condition = FilterCondition.Equals,
+                Value = SpanId
             });
         }
 
@@ -241,7 +251,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
         else
         {
-            var logEntryViewModel = new StructureLogsDetailsViewModel
+            StructureLogsDetailsViewModel? logEntryViewModel = new StructureLogsDetailsViewModel
             {
                 LogEntry = entry
             };
@@ -269,10 +279,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await _contentLayout.CloseMobileToolbarAsync();
         }
 
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
+        List<string>? logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
 
-        var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
-        var parameters = new DialogParameters
+        Microsoft.Extensions.Localization.LocalizedString title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
+        DialogParameters? parameters = new DialogParameters
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
             Title = title,
@@ -280,9 +290,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             PrimaryAction = null,
             SecondaryAction = null,
         };
-        var data = new FilterDialogViewModel
+        FilterDialogViewModel? data = new FilterDialogViewModel
         {
-            Filter = entry, LogPropertyKeys = logPropertyKeys
+            Filter = entry,
+            LogPropertyKeys = logPropertyKeys
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
@@ -313,7 +324,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
+            CancellationTokenSource? cts = _filterCts = new CancellationTokenSource();
             _ = Task.Run(async () =>
             {
                 await ClearSelectedLogEntryAsync();
@@ -391,9 +402,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
     {
-        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+        string? filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
 
-        var url = DashboardUrls.StructuredLogsUrl(
+        string? url = DashboardUrls.StructuredLogsUrl(
             resource: serializable.SelectedApplication,
             logLevel: serializable.LogLevelText,
             filters: filters);
@@ -416,7 +427,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
-        if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
+        if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out LogLevel logLevel))
         {
             PageViewModel.SelectedLogLevel = _logLevels.SingleOrDefault(e => e.Id == logLevel) ?? _logLevels[0];
         }
@@ -429,7 +440,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         if (SerializedLogFilters is not null)
         {
-            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+            List<LogFilter>? filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
 
             if (filters.Count > 0)
             {

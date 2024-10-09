@@ -1,15 +1,21 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Otlp.Storage;
+using System.Linq;
+using System.Threading;
+using Aspire;
+using Turbine.Dashboard.Configuration;
+using Turbine.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("ApplicationName = {ApplicationName}, InstanceId = {InstanceId}")]
 public class OtlpApplication
@@ -34,8 +40,8 @@ public class OtlpApplication
 
     public OtlpApplication(string name, string instanceId, Resource resource, ILogger logger, TelemetryLimitOptions options)
     {
-        var properties = new List<KeyValuePair<string, string>>();
-        foreach (var attribute in resource.Attributes)
+        List<KeyValuePair<string, string>>? properties = new List<KeyValuePair<string, string>>();
+        foreach (KeyValue? attribute in resource.Attributes)
         {
             switch (attribute.Key)
             {
@@ -43,10 +49,10 @@ public class OtlpApplication
                 case SERVICE_INSTANCE_ID:
                     // Values passed in via ctor and set to members. Don't add to properties collection.
                     break;
+
                 default:
                     properties.Add(new KeyValuePair<string, string>(attribute.Key, attribute.Value.GetString()));
                     break;
-
             }
         }
         Properties = properties.ToArray();
@@ -60,11 +66,11 @@ public class OtlpApplication
 
     public Dictionary<string, string> AllProperties()
     {
-        var props = new Dictionary<string, string>();
+        Dictionary<string, string>? props = new Dictionary<string, string>();
         props.Add(SERVICE_NAME, ApplicationName);
         props.Add(SERVICE_INSTANCE_ID, InstanceId);
 
-        foreach (var kv in Properties)
+        foreach (KeyValuePair<string, string> kv in Properties)
         {
             props.TryAdd(kv.Key, kv.Value);
         }
@@ -81,14 +87,14 @@ public class OtlpApplication
             // Temporary attributes array to use when adding metrics to the instruments.
             KeyValuePair<string, string>[]? tempAttributes = null;
 
-            foreach (var sm in scopeMetrics)
+            foreach (ScopeMetrics? sm in scopeMetrics)
             {
-                foreach (var metric in sm.Metrics)
+                foreach (Metric? metric in sm.Metrics)
                 {
                     try
                     {
-                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
-                        if (!_instruments.TryGetValue(instrumentKey, out var instrument))
+                        OtlpInstrumentKey instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
+                        if (!_instruments.TryGetValue(instrumentKey, out OtlpInstrument? instrument))
                         {
                             _instruments.Add(instrumentKey, instrument = new OtlpInstrument
                             {
@@ -133,7 +139,7 @@ public class OtlpApplication
 
     private OtlpMeter GetMeter(InstrumentationScope scope)
     {
-        if (!_meters.TryGetValue(scope.Name, out var meter))
+        if (!_meters.TryGetValue(scope.Name, out OtlpMeter? meter))
         {
             _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options));
         }
@@ -146,7 +152,7 @@ public class OtlpApplication
 
         try
         {
-            if (!_instruments.TryGetValue(new OtlpInstrumentKey(meterName, instrumentName), out var instrument))
+            if (!_instruments.TryGetValue(new OtlpInstrumentKey(meterName, instrumentName), out OtlpInstrument? instrument))
             {
                 return null;
             }
@@ -165,8 +171,8 @@ public class OtlpApplication
 
         try
         {
-            var instruments = new List<OtlpInstrumentSummary>(_instruments.Count);
-            foreach (var instrument in _instruments)
+            List<OtlpInstrumentSummary>? instruments = new List<OtlpInstrumentSummary>(_instruments.Count);
+            foreach (KeyValuePair<OtlpInstrumentKey, OtlpInstrument> instrument in _instruments)
             {
                 instruments.Add(instrument.Value.Summary);
             }
@@ -187,23 +193,23 @@ public class OtlpApplication
 
     public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
     {
-        var count = 0;
-        foreach (var item in allApplications)
+        int count = 0;
+        foreach (OtlpApplication? item in allApplications)
         {
             if (string.Equals(item.ApplicationName, app.ApplicationName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
                 {
-                    var instanceId = app.InstanceId;
+                    string? instanceId = app.InstanceId;
 
                     // Convert long GUID into a shorter, more human friendly format.
                     // Before: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
                     // After:  aaaaaaaa
-                    if (Guid.TryParse(instanceId, out var guid))
+                    if (Guid.TryParse(instanceId, out Guid guid))
                     {
                         Span<char> chars = stackalloc char[32];
-                        var result = guid.TryFormat(chars, charsWritten: out _, format: "N");
+                        bool result = guid.TryFormat(chars, charsWritten: out _, format: "N");
                         Debug.Assert(result, "Guid.TryFormat not successful.");
 
                         instanceId = chars.Slice(0, 8).ToString();

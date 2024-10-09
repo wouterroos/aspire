@@ -1,10 +1,10 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
 using System.ComponentModel.DataAnnotations;
-using Aspire.Dashboard.Resources;
+using Turbine.Dashboard.Resources;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public class TokenFormModel
 {

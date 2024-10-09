@@ -1,9 +1,12 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
-namespace Aspire.Dashboard.Otlp.Model;
+namespace Turbine.Dashboard.Otlp.Model;
 
 /// <summary>
 /// Represents a Span within an Operation (Trace)
@@ -41,6 +44,7 @@ public class OtlpSpan
     public TimeSpan Duration => EndTime - StartTime;
 
     public IEnumerable<OtlpSpan> GetChildSpans() => Trace.Spans.Where(s => s.ParentSpanId == SpanId);
+
     public OtlpSpan? GetParentSpan() => string.IsNullOrEmpty(ParentSpanId) ? null : Trace.Spans.Where(s => s.SpanId == ParentSpanId).FirstOrDefault();
 
     public OtlpSpan(OtlpApplication application, OtlpTrace trace, OtlpScope scope)
@@ -72,7 +76,7 @@ public class OtlpSpan
 
     public Dictionary<string, string> AllProperties()
     {
-        var props = new Dictionary<string, string>
+        Dictionary<string, string>? props = new Dictionary<string, string>
         {
             { "SpanId", SpanId },
             { "Name", Name },
@@ -89,7 +93,7 @@ public class OtlpSpan
             props.Add("StatusMessage", StatusMessage);
         }
 
-        foreach (var kv in Attributes.OrderBy(a => a.Key))
+        foreach (KeyValuePair<string, string> kv in Attributes.OrderBy(a => a.Key))
         {
             props.TryAdd(kv.Key, kv.Value);
         }

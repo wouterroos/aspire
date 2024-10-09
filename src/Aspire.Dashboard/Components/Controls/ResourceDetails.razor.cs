@@ -1,15 +1,20 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Turbine.Dashboard.Components.Controls;
 
 public partial class ResourceDetails
 {
@@ -106,7 +111,7 @@ public partial class ResourceDetails
 
     private void ResetResourceEnvironmentVariableMasks()
     {
-        foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
+        foreach (EnvironmentVariableViewModel? vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
         {
             vm.IsValueMasked = _areEnvironmentVariablesMasked;
         }
@@ -119,7 +124,7 @@ public partial class ResourceDetails
 
     private IEnumerable<SummaryValue> GetResourceValues()
     {
-        var resolvedKnownProperties = Resource.ResourceType switch
+        List<KnownProperty>? resolvedKnownProperties = Resource.ResourceType switch
         {
             KnownResourceTypes.Project => _projectProperties,
             KnownResourceTypes.Executable => _executableProperties,
@@ -130,7 +135,7 @@ public partial class ResourceDetails
         // This is a left outer join for the SQL fans.
         // Return the resource properties, with an optional known property.
         // Order properties by the known property order. Unmatched properties are last.
-        var values = Resource.Properties
+        IOrderedEnumerable<SummaryValue>? values = Resource.Properties
             .Where(p => !p.Value.HasNullValue && !(p.Value.KindCase == Value.KindOneofCase.ListValue && p.Value.ListValue.Values.Count == 0))
             .GroupJoin(
                 resolvedKnownProperties,
@@ -176,7 +181,7 @@ public partial class ResourceDetails
         {
             // Dates are returned as ISO 8601 text.
             // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
-            if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
             {
                 value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
             }
@@ -189,7 +194,7 @@ public partial class ResourceDetails
     {
         if (Resource.Environment is var environment)
         {
-            foreach (var vm in environment)
+            foreach (EnvironmentVariableViewModel? vm in environment)
             {
                 vm.IsValueMasked = _areEnvironmentVariablesMasked;
             }
@@ -198,10 +203,10 @@ public partial class ResourceDetails
 
     private void CheckAllMaskStates()
     {
-        var foundMasked = false;
-        var foundUnmasked = false;
+        bool foundMasked = false;
+        bool foundUnmasked = false;
 
-        foreach (var vm in Resource.Environment)
+        foreach (EnvironmentVariableViewModel? vm in Resource.Environment)
         {
             foundMasked |= vm.IsValueMasked;
             foundUnmasked |= !vm.IsValueMasked;

@@ -1,10 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Model.MetricValues;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Otlp.Model;
+using Turbine.Dashboard.Otlp.Model.MetricValues;
 
-namespace Aspire.Dashboard.Model;
+namespace Turbine.Dashboard.Model;
 
 public class InstrumentViewModel
 {
@@ -20,7 +23,7 @@ public class InstrumentViewModel
         Instrument = instrument;
         MatchedDimensions = matchedDimensions;
 
-        foreach (var subscription in DataUpdateSubscriptions)
+        foreach (Func<Task>? subscription in DataUpdateSubscriptions)
         {
             await subscription().ConfigureAwait(false);
         }

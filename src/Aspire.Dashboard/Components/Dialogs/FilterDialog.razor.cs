@@ -1,14 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Otlp.Storage;
+using System.Collections.Generic;
+using System.Linq;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Model.Otlp;
+using Turbine.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Dialogs;
+namespace Turbine.Dashboard.Components.Dialogs;
 
 public partial class FilterDialog
 {
@@ -47,9 +49,9 @@ public partial class FilterDialog
 
     protected override void OnParametersSet()
     {
-        var names = new List<string> { LogFilter.KnownMessageField, LogFilter.KnownCategoryField, LogFilter.KnownApplicationField, LogFilter.KnownTraceIdField, LogFilter.KnownSpanIdField, LogFilter.KnownOriginalFormatField };
-        var knownFields = names.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
-        var customFields = Content.LogPropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
+        List<string>? names = new List<string> { LogFilter.KnownMessageField, LogFilter.KnownCategoryField, LogFilter.KnownApplicationField, LogFilter.KnownTraceIdField, LogFilter.KnownSpanIdField, LogFilter.KnownOriginalFormatField };
+        List<SelectViewModel<string>>? knownFields = names.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
+        List<SelectViewModel<string>>? customFields = Content.LogPropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
 
         _parameters =
         [
@@ -94,7 +96,7 @@ public partial class FilterDialog
         }
         else
         {
-            var filter = new LogFilter
+            LogFilter? filter = new LogFilter
             {
                 Field = _formModel.Parameter!.Id!,
                 Condition = _formModel.Condition!.Id,

@@ -3,18 +3,18 @@
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
 
-@using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Model.Otlp
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
+@using Turbine.Dashboard.Components.Controls.Grid
+@using Turbine.Dashboard.Model.Otlp
+@using Turbine.Dashboard.Otlp.Model
+@using Turbine.Dashboard.Resources
+@using Turbine.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout
+    <TurbinePageContentLayout
         AddNewlineOnToolbar="true"
         @ref="_contentLayout"
         HeaderStyle="margin-bottom: calc(var(--design-unit) * 2px);"
@@ -141,5 +141,5 @@
                 }
             </div>
         </MainSection>
-    </AspirePageContentLayout>
+    </TurbinePageContentLayout>
 </div>

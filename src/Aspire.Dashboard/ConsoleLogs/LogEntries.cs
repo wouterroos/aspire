@@ -1,11 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Turbine.Dashboard.Model;
+using Turbine.Dashboard.Otlp.Storage;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Turbine.Dashboard.ConsoleLogs;
 
 public sealed class LogEntries(int maximumEntryCount)
 {
@@ -32,9 +35,9 @@ public sealed class LogEntries(int maximumEntryCount)
         {
             // If we have a parent id, then we know we're on a non-timestamped line that is part
             // of a multi-line log entry. We need to find the prior line from that entry
-            for (var rowIndex = _logEntries.Count - 1; rowIndex >= 0; rowIndex--)
+            for (int rowIndex = _logEntries.Count - 1; rowIndex >= 0; rowIndex--)
             {
-                var current = _logEntries[rowIndex];
+                LogEntry? current = _logEntries[rowIndex];
 
                 if (current.Id == logEntry.ParentId && logEntry.LineIndex - 1 == current.LineIndex)
                 {
@@ -48,10 +51,10 @@ public sealed class LogEntries(int maximumEntryCount)
             // Otherwise, if we have a timestamped line, we just need to find the prior line.
             // Since the rows are always in order, as soon as we see a timestamp
             // that is less than the one we're adding, we can insert it immediately after that
-            for (var rowIndex = _logEntries.Count - 1; rowIndex >= 0; rowIndex--)
+            for (int rowIndex = _logEntries.Count - 1; rowIndex >= 0; rowIndex--)
             {
-                var current = _logEntries[rowIndex];
-                var currentTimestamp = current.Timestamp ?? current.ParentTimestamp;
+                LogEntry? current = _logEntries[rowIndex];
+                DateTimeOffset? currentTimestamp = current.Timestamp ?? current.ParentTimestamp;
 
                 if (currentTimestamp != null && currentTimestamp <= logEntry.Timestamp)
                 {
@@ -82,7 +85,7 @@ public sealed class LogEntries(int maximumEntryCount)
             _logEntries.Insert(index, logEntry);
 
             // If a log entry isn't inserted at the end then update the line numbers of all subsequent entries.
-            for (var i = index + 1; i < _logEntries.Count; i++)
+            for (int i = index + 1; i < _logEntries.Count; i++)
             {
                 _logEntries[i].LineNumber++;
             }

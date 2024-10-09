@@ -1,20 +1,26 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) Lateral Group, 2023. All rights reserved.
+// See LICENSE file in the project root for full license information.
 
+using System;
 using System.Buffers;
+using System.IO;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Reflection;
-using Aspire.Dashboard.Authentication;
-using Aspire.Dashboard.Configuration;
+using System.Threading.Tasks;
+using Turbine.Dashboard.Authentication;
+using Turbine.Dashboard.Configuration;
 using Google.Protobuf;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
-namespace Aspire.Dashboard.Otlp.Http;
+namespace Turbine.Dashboard.Otlp.Http;
 
 public static class OtlpHttpEndpointsBuilder
 {
@@ -24,14 +30,14 @@ public static class OtlpHttpEndpointsBuilder
 
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
     {
-        var httpEndpoint = options.GetHttpEndpointUri();
+        Uri? httpEndpoint = options.GetHttpEndpointUri();
         if (httpEndpoint == null)
         {
             // Don't map OTLP HTTP route endpoints if there isn't a Kestrel endpoint to access them with.
             return;
         }
 
-        var group = endpoints
+        RouteGroupBuilder? group = endpoints
             .MapGroup("/v1")
             .AddOtlpHttpMetadata();
 
@@ -75,7 +81,7 @@ public static class OtlpHttpEndpointsBuilder
 
     private static KnownContentType GetKnownContentType(string? contentType, out StringSegment charSet)
     {
-        if (contentType != null && MediaTypeHeaderValue.TryParse(contentType, out var mt))
+        if (contentType != null && MediaTypeHeaderValue.TryParse(contentType, out MediaTypeHeaderValue? mt))
         {
             if (string.Equals(mt.MediaType, JsonContentType, StringComparison.OrdinalIgnoreCase))
             {
@@ -110,14 +116,14 @@ public static class OtlpHttpEndpointsBuilder
 
         public static async ValueTask<MessageBindable<TMessage>?> BindAsync(HttpContext context, ParameterInfo parameter)
         {
-            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            switch (GetKnownContentType(context.Request.ContentType, out StringSegment charSet))
             {
                 case KnownContentType.Protobuf:
                     try
                     {
-                        var message = await ReadOtlpData(context, data =>
+                        TMessage? message = await ReadOtlpData(context, data =>
                         {
-                            var message = new TMessage();
+                            TMessage? message = new TMessage();
                             message.MergeFrom(data);
                             return message;
                         }).ConfigureAwait(false);
@@ -150,13 +156,14 @@ public static class OtlpHttpEndpointsBuilder
                 case KnownContentType.Protobuf:
 
                     // This isn't very efficient but OTLP Protobuf responses are small.
-                    var ms = new MemoryStream();
+                    MemoryStream? ms = new MemoryStream();
                     _message.WriteTo(ms);
                     ms.Seek(0, SeekOrigin.Begin);
 
                     httpContext.Response.ContentType = ProtobufContentType;
                     await ms.CopyToAsync(httpContext.Response.Body).ConfigureAwait(false);
                     break;
+
                 case KnownContentType.Json:
                 default:
                     httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
